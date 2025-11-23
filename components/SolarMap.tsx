@@ -10,11 +10,9 @@ interface SolarMapProps {
 export const SolarMap: React.FC<SolarMapProps> = ({ speed, density, kp }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
-  const [showLegend, setShowLegend] = useState(false);
-
-  // Initialize particle pool once
   const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, size: number, alpha: number}[]>([]);
   const initializedRef = useRef(false);
+  const [showLegend, setShowLegend] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,7 +34,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({ speed, density, kp }) => {
         const count = 60; // Fixed pool size
         for(let i=0; i<count; i++) {
             particlesRef.current.push({
-                x: Math.random() * canvas.width, // Spread across screen initially
+                x: Math.random() * canvas.width, 
                 y: (Math.random() * canvas.height * 0.8) + (canvas.height * 0.1),
                 vx: 0, 
                 vy: 0,
@@ -143,16 +141,13 @@ export const SolarMap: React.FC<SolarMapProps> = ({ speed, density, kp }) => {
             if (p.x > w || hitShield) {
                 p.x = sunRadius + Math.random() * 20; // Respawn near sun
                 p.y = sunY + (Math.random() * h * 0.8) - (h * 0.4); // Spread vertically
-                
-                // If hit shield, show impact effect? (Simplified: just respawn)
             }
 
-            // Draw
+            // Draw as DOTS (circles)
+            // We do not use scale/stretch, so they remain perfect circles
             ctx.globalAlpha = p.alpha;
             ctx.beginPath();
-            // Stretch based on speed (Motion Blur)
-            const length = Math.min(20, p.vx * 3);
-            ctx.ellipse(p.x, p.y, length, p.size, 0, 0, Math.PI * 2);
+            ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.globalAlpha = 1;
