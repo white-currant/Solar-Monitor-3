@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Fix for GitHub Pages sub-directory deployment -->
+    <base href="./" />
     <title>SolarMonitor | Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -26,6 +28,25 @@
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #00e676; 
+      }
+      /* Pre-loader styles */
+      #root:empty {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: #050a14;
+      }
+      #root:empty::after {
+        content: "INITIALIZING SATELLITE LINK...";
+        color: #00bcd4;
+        font-family: 'Share Tech Mono', monospace;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0% { opacity: 0.3; }
+        50% { opacity: 1; }
+        100% { opacity: 0.3; }
       }
     </style>
   <script type="importmap">
