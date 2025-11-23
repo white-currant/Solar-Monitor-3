@@ -1,0 +1,5 @@
+{
+  "name": "Copy of SolarMonitor Pro 2",
+  "description": "Advanced real-time solar telemetry dashboard tracking Geomagnetic Kp-Index, Solar Wind, and X-Ray Flares using NOAA data.",
+  "requestFramePermissions": []
+}
