@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
 import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
@@ -64,6 +64,9 @@ const App: React.FC = () => {
 
   // Data fetching loop
   const loadData = async () => {
+    // Optimization: Don't fetch if tab is hidden to save resources
+    if (document.hidden) return;
+
     setLoading(true);
     const result = await fetchSolarData();
     
@@ -107,7 +110,19 @@ const App: React.FC = () => {
   useEffect(() => {
     loadData();
     const interval = setInterval(loadData, 60000); // Update every minute
-    return () => clearInterval(interval);
+    
+    // Add listener to immediately update when user comes back to tab
+    const handleVisibilityChange = () => {
+        if (!document.hidden) {
+            loadData();
+        }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Analysis Logic
@@ -190,13 +205,16 @@ const App: React.FC = () => {
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
       
-      <header className="max-w-7xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+      <header className="max-w-4xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-center md:text-left">
           <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-[0.2em] flex items-center gap-4 drop-shadow-[0_0_15px_rgba(0,188,212,0.4)]">
             Solar Monitor
             <span className={`inline-block w-3 h-3 rounded-full shadow-[0_0_10px] animate-pulse ${loading ? 'bg-yellow-400 shadow-yellow-400' : fetchError ? 'bg-red-500 shadow-red-500' : 'bg-[#00e676] shadow-[#00e676]'}`}></span>
           </h1>
-          <div className="text-gray-500 text-sm font-mono mt-1 tracking-widest">LIVE TELEMETRY // NOAA SWPC DATA STREAM</div>
+          <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
+            <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.3</span>
+          </div>
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-3">
@@ -208,13 +226,13 @@ const App: React.FC = () => {
                 flareFlux={currentFlareFlux}
             />
             
-            <button onClick={loadData} className="flex items-center gap-2 px-4 py-2 border border-[#00bcd4] text-[#00bcd4] rounded hover:bg-[#00bcd4] hover:text-black transition-all uppercase text-xs font-bold tracking-wider h-[34px]">
-              <RefreshCw size={14} className="animate-spin-slow" /> Обновить
+            <button onClick={() => !loading && loadData()} className="flex items-center gap-2 px-4 py-2 border border-[#00bcd4] text-[#00bcd4] rounded hover:bg-[#00bcd4] hover:text-black transition-all uppercase text-xs font-bold tracking-wider h-[34px]">
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Обновить
             </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-3xl mx-auto">
         
         {/* CONNECTION ERROR BANNER */}
         {fetchError && (
@@ -229,10 +247,13 @@ const App: React.FC = () => {
 
         <AnalysisBox text={report} danger={dangerIndex} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 
+            LAYOUT: Single column (flex-col) to stack cards vertically on all screens.
+        */}
+        <div className="flex flex-col gap-8">
           
           {/* --- CARD 1: KP INDEX --- */}
-          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col h-[720px]">
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
                 <Activity size={16} /> ГЕОМАГНИТНЫЙ ИНДЕКС
@@ -264,8 +285,8 @@ const App: React.FC = () => {
              {/* VISUALIZATION */}
             <GeomagneticMap kp={currentKp} windSpeed={currentWind} density={currentDensity} />
 
-            {/* Interactive Chart */}
-            <div className="bg-black/20 rounded border border-white/5 p-2 relative flex-1 min-h-[100px]">
+            {/* Interactive Chart - Fixed Height to ensure visibility */}
+            <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2 relative">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={kpData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
@@ -302,7 +323,7 @@ const App: React.FC = () => {
           </div>
 
           {/* --- CARD 2: SOLAR WIND --- */}
-          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col h-[720px]">
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
                 <Wind size={16} /> СОЛНЕЧНЫЙ ВЕТЕР
@@ -356,8 +377,8 @@ const App: React.FC = () => {
             {/* SOLAR MAP VISUALIZATION */}
             <SolarMap speed={currentWind} density={currentDensity} kp={currentKp} />
 
-            {/* Interactive Chart */}
-            <div className="flex-1 bg-black/20 rounded border border-white/5 p-2 min-h-[150px]">
+            {/* Interactive Chart - Fixed Height */}
+            <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={windData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
@@ -395,7 +416,7 @@ const App: React.FC = () => {
           </div>
 
           {/* --- CARD 3: FLARES --- */}
-          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col h-[720px]">
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
                 <Zap size={16} /> ВСПЫШКИ (X-RAY)
@@ -426,9 +447,9 @@ const App: React.FC = () => {
 
              {/* VISUALIZATION */}
             <SolarFlareMap flareClass={currentFlareClass} flux={currentFlareFlux} />
-            
-            {/* --- SIGNIFICANT FLARES LIST (NOW AT TOP) --- */}
-            <div className="flex-1 flex flex-col min-h-0 bg-black/20 rounded border border-white/5 overflow-hidden mb-4">
+
+            {/* --- SIGNIFICANT FLARES LIST (MOVED TO TOP) --- */}
+            <div className="flex-1 flex flex-col max-h-[200px] bg-black/20 rounded border border-white/5 overflow-hidden mb-4">
                 <div className="text-gray-500 p-3 border-b border-gray-800 flex justify-between items-center font-bold text-xs font-mono bg-black/40 rounded-t">
                     <div className="flex items-center gap-2">
                         <span>ЗНАЧИМЫЕ ВСПЫШКИ (КЛАСС C+)</span>
@@ -466,7 +487,7 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* --- FLARE CHART (NOW AT BOTTOM) --- */}
+            {/* --- FLARE CHART (MOVED TO BOTTOM) --- */}
             <div className="h-[180px] bg-black/20 rounded border border-white/5 p-2">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={flareData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -502,17 +523,9 @@ const App: React.FC = () => {
                     dot={false}
                   />
                   
-                  {/* Reference lines for ALL detected events */}
                   {detectedFlares.map((flare, index) => {
-                      // Check if this specific flare is highlighted
                       const isActive = activeFlareTime === flare.time;
-                      // Is it significant? (C+)
                       const isSig = flare.isSignificant;
-                      
-                      // Color: 
-                      // If Active -> White
-                      // If Sig -> Color based on class
-                      // If Bg -> Gray
                       let strokeColor = '#6b7280';
                       if (isActive) strokeColor = '#ffffff';
                       else if (flare.class.includes('X')) strokeColor = '#ff1744';
