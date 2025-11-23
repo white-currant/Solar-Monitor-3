@@ -21,7 +21,8 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
     const updateDimensions = () => {
         if(canvas.parentElement) {
             canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = 160;
+            // Increased canvas height slightly to accommodate larger drawing
+            canvas.height = 260;
         }
     };
     updateDimensions();
@@ -47,24 +48,25 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
 
         ctx.clearRect(0, 0, w, h);
 
-        // 1. Sunlight Gradient (Instead of Arrow)
-        const sunGrad = ctx.createRadialGradient(0, cy, 10, 80, cy, 120);
+        // 1. Sunlight Gradient
+        const sunGrad = ctx.createRadialGradient(0, cy, 10, 80, cy, 160);
         sunGrad.addColorStop(0, 'rgba(255, 202, 40, 0.2)');
         sunGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = sunGrad;
         ctx.fillRect(0, 0, cx, h);
 
+        // SCALE FACTOR for larger drawing
+        const S = 1.5; 
+
         // Physics Calculation for Breathing
         const pressure = (density * Math.pow(windSpeed, 2)) / 200000;
-        // Breathing effect based on time and pressure
         const breath = Math.sin(time * 2) * 2;
-        const compression = Math.min(30, Math.max(5, (pressure * 10))) + breath;
+        const compression = (Math.min(30, Math.max(5, (pressure * 10))) + breath) * S;
         
         // Magnetosphere Shape (Teardrop / Bullet)
-        // Day side (left) is compressed, Night side (right) is elongated
-        const r = 30; // Earth Radius (Visual)
-        const noseX = cx - (r + 30 - compression); // Compressed nose
-        const tailX = cx + (r + 80); // Long tail
+        const r = 12 * S; // Earth Radius Visual
+        const noseX = cx - (40 * S + 30 * S - compression); 
+        const tailX = cx + (40 * S + 80 * S);
         
         // Colors
         let lineColor = '#00e676';
@@ -72,35 +74,32 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
         if (kp >= 4) { lineColor = '#ffca28'; jitter = 1; }
         if (kp >= 5) { lineColor = '#ff1744'; jitter = 3; }
 
-        // Draw Field Lines (Teardrop shape)
+        // Draw Field Lines
         const drawShell = (scale: number, alpha: number) => {
             ctx.beginPath();
             ctx.strokeStyle = lineColor;
             ctx.globalAlpha = alpha;
+            ctx.lineWidth = 1.5;
             ctx.setLineDash([5, 5]);
-            ctx.lineDashOffset = -time * 20; // Flow animation
+            ctx.lineDashOffset = -time * 20; 
 
-            // Bezier curve to form teardrop
-            // Start at poles
-            ctx.moveTo(cx, cy - 10); // North Pole
+            ctx.moveTo(cx, cy - (10 * S)); // North Pole
             
-            // Curve around day side
-            // CP1 (Top Left), CP2 (Bottom Left)
-            const dX = noseX - (scale * 10) + (Math.random()-0.5)*jitter;
+            const dX = noseX - (scale * 10 * S) + (Math.random()-0.5)*jitter;
             
             // Left lobe
             ctx.bezierCurveTo(
-                dX, cy - (40 * scale), // CP1
-                dX, cy + (40 * scale), // CP2
-                cx, cy + 10 // South Pole
+                dX, cy - (40 * scale * S), 
+                dX, cy + (40 * scale * S), 
+                cx, cy + (10 * S) // South Pole
             );
             
             // Right lobe (Tail)
-            const tX = tailX + (scale * 20);
+            const tX = tailX + (scale * 20 * S);
             ctx.bezierCurveTo(
-                tX, cy + (40 * scale), 
-                tX, cy - (40 * scale), 
-                cx, cy - 10
+                tX, cy + (40 * scale * S), 
+                tX, cy - (40 * scale * S), 
+                cx, cy - (10 * S)
             );
             
             ctx.stroke();
@@ -108,30 +107,30 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
         };
 
         for(let i=1; i<=3; i++) {
-            drawShell(i * 0.5, 1 - (i*0.2));
+            drawShell(i * 0.55, 1 - (i*0.2));
         }
         ctx.globalAlpha = 1;
 
         // Draw Earth
         ctx.beginPath();
-        ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = '#151a25';
         ctx.fill();
         // Day/Night on Earth
         ctx.beginPath();
-        ctx.arc(cx, cy, 12, Math.PI * 0.5, Math.PI * 1.5);
-        ctx.fillStyle = '#4fc3f7'; // Day side facing left
+        ctx.arc(cx, cy, r, Math.PI * 0.5, Math.PI * 1.5);
+        ctx.fillStyle = '#4fc3f7'; // Day side
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(cx, cy, 12, Math.PI * 1.5, Math.PI * 0.5);
-        ctx.fillStyle = '#0d47a1'; // Night side facing right
+        ctx.arc(cx, cy, r, Math.PI * 1.5, Math.PI * 0.5);
+        ctx.fillStyle = '#0d47a1'; // Night side
         ctx.fill();
 
         // Aurora Glow
         if (kp >= 5) {
             ctx.fillStyle = `rgba(0, 255, 100, 0.5)`;
             ctx.beginPath();
-            ctx.arc(cx, cy, 16, 0, Math.PI*2);
+            ctx.arc(cx, cy, r + 4, 0, Math.PI*2);
             ctx.fill();
         }
 
@@ -155,7 +154,7 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
   }, [kp, showLegend, windSpeed, density]);
 
   return (
-    <div className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden">
+    <div className="w-full h-[260px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden">
       <canvas ref={canvasRef} className="w-full h-full block" />
       <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono tracking-widest pointer-events-none">
         МОДЕЛЬ МАГНИТОСФЕРЫ
