@@ -36,6 +36,7 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux }
     const updateDimensions = () => {
         if(canvas.parentElement) {
             canvas.width = canvas.parentElement.clientWidth;
+            // Kept original height as user only asked to make Geomagnetic map larger
             canvas.height = 160;
         }
     };
