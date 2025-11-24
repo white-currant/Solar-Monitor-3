@@ -121,6 +121,7 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
             </div>
             <InfoTooltip 
                 title="Общий статус"
+                align="left"
                 description={
                     <>
                         <p className="mb-2">Интегральная оценка текущей космической погоды.</p>
