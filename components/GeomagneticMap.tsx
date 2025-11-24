@@ -50,15 +50,24 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
         ctx.clearRect(0, 0, w, h);
 
         // 1. Sunlight Gradient (Intensity depends on wind speed)
-        const sunIntensity = Math.min(0.8, Math.max(0.2, windSpeed / 1000));
-        const sunGrad = ctx.createRadialGradient(0, cy, 10, 80 + (windSpeed/10), cy, 160);
+        const sunIntensity = Math.min(0.6, Math.max(0.1, windSpeed / 1200)); // Reduced max intensity
+        
+        // Fix for mobile: gradient radius and position relative to canvas height/width
+        // Reduced radius significantly for a tighter glow
+        const gradRadius = Math.max(w * 0.25, 80); 
+        const sunGrad = ctx.createRadialGradient(0, cy, 5, gradRadius, cy, gradRadius * 2);
+        
         sunGrad.addColorStop(0, `rgba(255, 202, 40, ${sunIntensity})`);
         sunGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        
         ctx.fillStyle = sunGrad;
-        ctx.fillRect(0, 0, cx, h);
+        // Fill rect covers the left half or so
+        ctx.fillRect(0, 0, w, h);
 
         // SCALE FACTOR for larger drawing
-        const S = 1.5; 
+        // Adaptive scale based on width to prevent cutting off on mobile
+        const baseScale = w < 400 ? 1.0 : 1.5; 
+        const S = baseScale;
 
         // --- PHYSICS CALCULATIONS ---
         
