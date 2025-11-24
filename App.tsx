@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
-import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays } from 'lucide-react';
+import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
 import { InfoTooltip } from './components/InfoTooltip';
 import { SpaceSound } from './components/SpaceSound';
 import { SolarMap } from './components/SolarMap';
 import { GeomagneticMap } from './components/GeomagneticMap';
 import { SolarFlareMap } from './components/SolarFlareMap';
+import { ProtonGraph } from './components/ProtonGraph';
 import { fetchSolarData, getFlareClass } from './services/noaaService';
-import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint } from './types';
+import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint, ProtonDataPoint } from './types';
 
 // Custom styles for the star background
 const starBgStyle: React.CSSProperties = {
@@ -87,6 +88,7 @@ const App: React.FC = () => {
   const [windData, setWindData] = useState<WindDataPoint[]>([]);
   const [flareData, setFlareData] = useState<FlareDataPoint[]>([]);
   const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
+  const [protonData, setProtonData] = useState<ProtonDataPoint[]>([]);
   const [detectedFlares, setDetectedFlares] = useState<ExtendedFlare[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -109,11 +111,11 @@ const App: React.FC = () => {
       setWindData(result.wind);
       setFlareData(result.flares);
       setForecastData(result.forecast || []);
+      setProtonData(result.protons || []);
       analyzeData(result.kp, result.wind, result.flares);
       
       // Detect Flares (Peaks)
       const peaks: ExtendedFlare[] = [];
-      // Threshold A1.0 = 1e-8. We want to capture almost all identifiable peaks.
       const threshold = 1e-8; 
       
       for (let i = 1; i < result.flares.length - 1; i++) {
@@ -121,11 +123,8 @@ const App: React.FC = () => {
           const curr = result.flares[i].flux;
           const next = result.flares[i+1].flux;
           
-          // Simple peak detection
           if (curr > prev && curr > next && curr > threshold) {
-              // Significant = Class C1.0 (1e-6) or higher
               const isSignificant = curr >= 1e-6;
-              
               peaks.push({
                   ...result.flares[i],
                   isSignificant: isSignificant
@@ -133,7 +132,6 @@ const App: React.FC = () => {
           }
       }
       
-      // Sort by time descending (newest first)
       const sortedPeaks = peaks.sort((a,b) => new Date(b.time).getTime() - new Date(a.time).getTime());
       setDetectedFlares(sortedPeaks);
     }
@@ -144,7 +142,6 @@ const App: React.FC = () => {
     loadData();
     const interval = setInterval(loadData, 60000); // Update every minute
     
-    // Add listener to immediately update when user comes back to tab
     const handleVisibilityChange = () => {
         if (!document.hidden) {
             loadData();
@@ -160,27 +157,22 @@ const App: React.FC = () => {
 
   // Analysis Logic (Smoothed & Neutral)
   const analyzeData = (kp: KpDataPoint[], wind: WindDataPoint[], flares: FlareDataPoint[]) => {
-    // DATA SMOOTHING (1-3 Hour averages)
     const lastKp = kp[kp.length - 1]?.kp || 0;
     const avgWind = getAverage(wind, 'speed', 6); 
     const avgFlux = getAverage(flares, 'flux', 12); 
     const avgFlareClass = getFlareClass(avgFlux);
 
-    // 1. Calculate Activity Index (Score 0-10)
     let score = 0;
     
-    // KP Weight
     if (lastKp >= 7) score += 4;
     else if (lastKp >= 5) score += 3;
     else if (lastKp >= 4) score += 2;
     else if (lastKp >= 3) score += 1;
 
-    // Wind Weight
     if (avgWind >= 700) score += 3;
     else if (avgWind >= 500) score += 2;
     else if (avgWind >= 400) score += 1;
 
-    // Flare Weight
     if (avgFlareClass.includes('X')) score += 3;
     else if (avgFlareClass.includes('M')) {
        const val = parseFloat(avgFlareClass.replace('M', ''));
@@ -188,24 +180,21 @@ const App: React.FC = () => {
        else score += 1;
     }
 
-    // Determine Level (Neutral Terminology)
     let dLabel = 'ФОНОВЫЙ';
-    let dColor = 'text-[#00e676]'; // Green
+    let dColor = 'text-[#00e676]'; 
 
     if (score >= 5) {
-        dLabel = 'ВЫСОКИЙ'; // High
-        dColor = 'text-[#ff1744]'; // Red
+        dLabel = 'ВЫСОКИЙ'; 
+        dColor = 'text-[#ff1744]'; 
     } else if (score >= 3) {
-        dLabel = 'УМЕРЕННЫЙ'; // Moderate
-        dColor = 'text-[#ffca28]'; // Yellow
+        dLabel = 'УМЕРЕННЫЙ';
+        dColor = 'text-[#ffca28]'; 
     }
 
     setDangerIndex({ score, label: dLabel, colorClass: dColor });
 
-    // 2. Generate Text Report (Neutral & Reassuring)
     let text = [];
 
-    // Kp Analysis
     if (lastKp >= 5) {
         text.push("СТАТУС: Активная фаза геомагнитного поля. Это естественное природное явление.");
         text.push("Атмосфера Земли надежно защищает биосферу.");
@@ -218,12 +207,10 @@ const App: React.FC = () => {
         text.push("Оптимальные условия для отдыха и работы.");
     }
 
-    // Wind Analysis
     if (avgWind > 600) text.push(`\nСкорость солнечного ветра повышена (${Math.round(avgWind)} км/с), магнитосфера успешно амортизирует поток.`);
     else if (avgWind > 450) text.push(`\nПоток плазмы в пределах динамической нормы (${Math.round(avgWind)} км/с).`);
     else text.push(`\nПараметры солнечного ветра стабильны (${Math.round(avgWind)} км/с).`);
 
-    // Flare Analysis
     if (avgFlareClass.includes('X')) text.push("\nЗарегистрирован всплеск солнечной энергии (Класс X). Красивое и безопасное для поверхности Земли событие.");
     else if (avgFlareClass.includes('M')) text.push("\nСолнечная активность умеренная.");
     else text.push("\nРентгеновское излучение Солнца минимально.");
@@ -256,6 +243,17 @@ const App: React.FC = () => {
 
   const significantFlaresList = detectedFlares.filter(f => f.isSignificant);
 
+  // Proton Logic
+  const currentProtonFlux = protonData[protonData.length - 1]?.flux || 0;
+  // S-Scale: S1 > 10, S2 > 100, S3 > 1000
+  let protonScale = "S0 (Фон)";
+  let protonColor = "text-green-400";
+  if (currentProtonFlux >= 100000) { protonScale = "S5 (Экстремально)"; protonColor = "text-red-600"; }
+  else if (currentProtonFlux >= 10000) { protonScale = "S4 (Жесткий)"; protonColor = "text-red-500"; }
+  else if (currentProtonFlux >= 1000) { protonScale = "S3 (Сильный)"; protonColor = "text-red-400"; }
+  else if (currentProtonFlux >= 100) { protonScale = "S2 (Умеренный)"; protonColor = "text-yellow-400"; }
+  else if (currentProtonFlux >= 10) { protonScale = "S1 (Слабый)"; protonColor = "text-yellow-200"; }
+
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
       
@@ -267,7 +265,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.6</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.8</span>
           </div>
         </div>
         
@@ -288,7 +286,6 @@ const App: React.FC = () => {
 
       <main className="max-w-2xl mx-auto">
         
-        {/* CONNECTION ERROR BANNER */}
         {fetchError && (
             <div className="mb-6 bg-red-900/50 border border-red-500 text-red-100 px-6 py-4 rounded shadow-[0_0_20px_rgba(255,23,68,0.3)] flex items-center gap-4 animate-pulse">
                 <WifiOff size={32} className="text-red-500" />
@@ -373,7 +370,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* --- CARD 4: 3-DAY FORECAST --- */}
+          {/* --- CARD 2: 3-DAY FORECAST --- */}
           <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
@@ -427,7 +424,6 @@ const App: React.FC = () => {
                         ))}
                       </Bar>
                       
-                      {/* Current Time Label */}
                       <ReferenceLine 
                         x={forecastData[0].time} 
                         stroke="none" 
@@ -451,7 +447,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* --- CARD 2: SOLAR WIND --- */}
+          {/* --- CARD 3: SOLAR WIND --- */}
           <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
@@ -560,7 +556,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* --- CARD 3: FLARES --- */}
+          {/* --- CARD 4: FLARES --- */}
           <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
@@ -706,7 +702,58 @@ const App: React.FC = () => {
                     )}
                 </div>
             </div>
+          </div>
 
+          {/* --- CARD 5: PROTON FLUX --- */}
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
+                <Radiation size={16} /> ПРОТОННЫЙ ПОТОК (S-SCALE)
+              </h3>
+              <InfoTooltip 
+                title="Solar Radiation Storms"
+                source="GOES (Protons >10MeV)"
+                description={
+                  <>
+                    <p className="font-bold mb-2 text-white">Интенсивность потока солнечных протонов.</p>
+                    <div className="text-xs space-y-2 text-gray-300">
+                        <p><span className="text-[#00bcd4]">ВАЖНОСТЬ:</span> Критично для спутников (сбои электроники), космонавтов и полярной КВ-радиосвязи.</p>
+                        <p className="border-l-2 border-green-500 pl-2 text-green-100 italic">
+                            <span className="text-green-400 font-bold">ДЛЯ ЧЕЛОВЕКА:</span> На поверхности Земли угрозы НЕ ПРЕДСТАВЛЯЕТ. Атмосфера планеты полностью поглощает и блокирует эти частицы. Вы в безопасности.
+                        </p>
+                    </div>
+                  </>
+                }
+              />
+            </div>
+
+            <div className="flex items-end gap-2 mb-4 border-b border-white/5 pb-4">
+              <span className={`font-mono text-4xl leading-none drop-shadow-md text-white`}>
+                {currentProtonFlux.toExponential(2)}
+              </span>
+              <span className="text-gray-500 text-xs font-mono mb-1">pfu</span>
+              <div className={`ml-auto px-2 py-1 bg-white/10 rounded text-xs font-bold tracking-wider ${protonColor}`}>
+                {protonScale}
+              </div>
+            </div>
+
+            <ProtonGraph flux={currentProtonFlux} />
+
+            <div className="h-[120px] bg-black/20 rounded border border-white/5 p-2 mt-auto">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <LineChart data={protonData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="time" tickFormatter={formatTime} tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={30} />
+                        <YAxis scale="log" domain={['auto', 'auto']} tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <RechartsTooltip 
+                            contentStyle={{ backgroundColor: '#151a25', borderColor: '#00bcd4', color: '#fff' }} 
+                            labelFormatter={formatTime}
+                            formatter={(val: number) => [val.toExponential(2), 'Flux']}
+                        />
+                        <Line type="monotone" dataKey="flux" stroke="#00e676" strokeWidth={2} dot={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
           </div>
 
         </div>
