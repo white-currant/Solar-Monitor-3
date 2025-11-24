@@ -33,16 +33,20 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
       // 2. CORONAL HOLES LOGIC
       // Cleaned up logic for "Neater" shapes
       if (windSpeed > 450) {
-          const holeCount = windSpeed > 650 ? 2 : 1; // Fewer, bigger holes for cleaner look
+          const holeCount = windSpeed > 650 ? 2 : 1; 
           const newHoles = Array.from({length: holeCount}, () => {
-              // Pre-calculate noise points for a fixed shape that just rotates/morphs slightly
               const numPoints = 12;
-              const points = Array.from({length: numPoints}, () => 0.8 + Math.random() * 0.4); // Radius multipliers
+              const points = Array.from({length: numPoints}, () => 0.8 + Math.random() * 0.4); 
               
+              // Positioning fix: 
+              // Center Y of sun is at h+120. To show up in the visible top arc,
+              // Y needs to be negative relative to center.
+              // We place them in the "Northern" hemisphere of the projected sun.
               return {
                   x: (Math.random() - 0.5) * 0.8, 
-                  y: (Math.random() - 0.5) * 0.5, 
-                  r: 60 + (windSpeed - 400) / 5, // Size
+                  y: -0.8 + (Math.random() * 0.2), // Shifted significantly UP to be visible
+                  // Reduce size: Base 20, scales gently with wind
+                  r: 20 + (windSpeed - 400) / 15, 
                   points: points,
                   angleOffset: Math.random() * Math.PI
               };
@@ -139,8 +143,6 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
         ctx.fillRect(0, 0, w, h);
 
         // 3. Draw Coronal Holes (Dark Patches)
-        // Using 'destination-out' or just dark color? 
-        // Coronal holes are cooler/darker.
         if (holes.length > 0) {
             holes.forEach(hole => {
                 const hx = cx + hole.x * r * 0.9; 
@@ -164,11 +166,11 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
                 }
                 ctx.closePath();
 
-                // Dark Void with soft edge
+                // Less scary Void: Dark Orange/Brown instead of Black
                 const holeGrad = ctx.createRadialGradient(hx, hy, 0, hx, hy, hole.r * 1.2);
-                holeGrad.addColorStop(0, 'rgba(30, 10, 5, 0.95)'); // Dark core
-                holeGrad.addColorStop(0.7, 'rgba(60, 20, 0, 0.8)'); 
-                holeGrad.addColorStop(1, 'rgba(245, 127, 23, 0)'); // Fade to sun color
+                holeGrad.addColorStop(0, 'rgba(120, 40, 10, 0.8)'); // Dark Orange Core
+                holeGrad.addColorStop(0.7, 'rgba(160, 60, 20, 0.6)'); // Blending
+                holeGrad.addColorStop(1, 'rgba(245, 127, 23, 0)'); // Fade out
 
                 ctx.fillStyle = holeGrad;
                 ctx.fill();
