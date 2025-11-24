@@ -541,47 +541,8 @@ const App: React.FC = () => {
              {/* VISUALIZATION */}
             <SolarFlareMap flareClass={currentFlareClass} flux={currentFlareFlux} />
 
-            {/* --- SIGNIFICANT FLARES LIST (MOVED TO TOP) --- */}
-            <div className="flex-1 flex flex-col max-h-[200px] bg-black/20 rounded border border-white/5 overflow-hidden mb-4">
-                <div className="text-gray-500 p-3 border-b border-gray-800 flex justify-between items-center font-bold text-xs font-mono bg-black/40 rounded-t">
-                    <div className="flex items-center gap-2">
-                        <span>ЗНАЧИМЫЕ ВСПЫШКИ (КЛАСС C+)</span>
-                        <InfoTooltip title="Список вспышек" description="Регистрируются только события класса C1.0 и выше, которые выделяются на общем фоне." />
-                    </div>
-                    <span className="text-[10px] text-gray-600">{significantFlaresList.length} ЗА 24Ч</span>
-                </div>
-                
-                <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 space-y-1 custom-scrollbar">
-                    {significantFlaresList.length > 0 ? (
-                        significantFlaresList.map((f, i) => (
-                            <div 
-                                key={i} 
-                                className={`flex justify-between items-center text-gray-300 text-xs font-mono py-1.5 px-2 rounded transition-all cursor-pointer border border-transparent ${activeFlareTime === f.time ? 'bg-white/10 border-white/20' : 'hover:bg-white/5'}`}
-                                onMouseEnter={() => setActiveFlareTime(f.time)}
-                                onMouseLeave={() => setActiveFlareTime(null)}
-                            >
-                                <div className="flex flex-col">
-                                    <span className={`${activeFlareTime === f.time ? 'text-white font-bold' : 'text-gray-400'}`}>{formatTime(f.time)}</span>
-                                </div>
-                                <span className={`font-bold text-sm px-2 py-0.5 rounded min-w-[50px] text-center ${
-                                    f.class.includes('X') ? 'bg-red-900/50 text-red-400 border border-red-800 shadow-[0_0_10px_rgba(255,23,68,0.3)]' : 
-                                    f.class.includes('M') ? 'bg-yellow-900/50 text-yellow-400 border border-yellow-800' : 
-                                    'bg-green-900/30 text-green-400 border border-green-800'
-                                }`}>
-                                    {f.class}
-                                </span>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-gray-600 italic text-center py-10 text-xs">
-                            Вспышек класса C+ не зафиксировано
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* --- FLARE CHART (MOVED TO BOTTOM) --- */}
-            <div className="h-[180px] bg-black/20 rounded border border-white/5 p-2">
+            {/* --- FLARE CHART (MOVED TO TOP) --- */}
+            <div className="h-[180px] bg-black/20 rounded border border-white/5 p-2 mb-4">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={flareData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
@@ -638,6 +599,45 @@ const App: React.FC = () => {
                   })}
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* --- SIGNIFICANT FLARES LIST (MOVED TO BOTTOM) --- */}
+            <div className="flex-1 flex flex-col max-h-[200px] bg-black/20 rounded border border-white/5 overflow-hidden">
+                <div className="text-gray-500 p-3 border-b border-gray-800 flex justify-between items-center font-bold text-xs font-mono bg-black/40 rounded-t">
+                    <div className="flex items-center gap-2">
+                        <span>ЗНАЧИМЫЕ ВСПЫШКИ (КЛАСС C+)</span>
+                        <InfoTooltip title="Список вспышек" description="Регистрируются только события класса C1.0 и выше, которые выделяются на общем фоне." />
+                    </div>
+                    <span className="text-[10px] text-gray-600">{significantFlaresList.length} ЗА 24Ч</span>
+                </div>
+                
+                <div className="overflow-y-auto overflow-x-hidden flex-1 p-2 space-y-1 custom-scrollbar">
+                    {significantFlaresList.length > 0 ? (
+                        significantFlaresList.map((f, i) => (
+                            <div 
+                                key={i} 
+                                className={`flex justify-between items-center text-gray-300 text-xs font-mono py-1.5 px-2 rounded transition-all cursor-pointer border border-transparent ${activeFlareTime === f.time ? 'bg-white/10 border-white/20' : 'hover:bg-white/5'}`}
+                                onMouseEnter={() => setActiveFlareTime(f.time)}
+                                onMouseLeave={() => setActiveFlareTime(null)}
+                            >
+                                <div className="flex flex-col">
+                                    <span className={`${activeFlareTime === f.time ? 'text-white font-bold' : 'text-gray-400'}`}>{formatTime(f.time)}</span>
+                                </div>
+                                <span className={`font-bold text-sm px-2 py-0.5 rounded min-w-[50px] text-center ${
+                                    f.class.includes('X') ? 'bg-red-900/50 text-red-400 border border-red-800 shadow-[0_0_10px_rgba(255,23,68,0.3)]' : 
+                                    f.class.includes('M') ? 'bg-yellow-900/50 text-yellow-400 border border-yellow-800' : 
+                                    'bg-green-900/30 text-green-400 border border-green-800'
+                                }`}>
+                                    {f.class}
+                                </span>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-gray-600 italic text-center py-10 text-xs">
+                            Вспышек класса C+ не зафиксировано
+                        </div>
+                    )}
+                </div>
             </div>
 
           </div>
