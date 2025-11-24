@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
 import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation } from 'lucide-react';
@@ -214,17 +213,18 @@ const App: React.FC = () => {
     }
     parts.push(statusText);
 
-    // 2. DYNAMICS (Wind & Impact)
+    // 2. DYNAMICS (Wind & Impact) - Updated with Source Distinction Logic
     let dynText = "";
-    if (avgWind >= 600) {
-        dynText = `ДИНАМИКА: Фиксируется высокоскоростной поток солнечного ветра (${Math.round(avgWind)} км/с). Давление на магнитопаузу Земли повышено, система амортизирует удар.`;
-    } 
-    else if (avgWind >= 500) {
-        // Check context: High wind but Low Kp?
+    if (avgWind >= 500) {
+        // Distinguish source: CH HSS (Low Proton) vs CME (High Proton)
+        const sourceNote = avgProton < 10 
+            ? "Ветер усилен, но радиационный фон в норме — признак корональной дыры, а не вспышки." 
+            : "Высокая скорость ветра сопровождается ростом протонного фона, что указывает на возможное влияние CME (выброса массы).";
+
         if (lastKp < 4) {
-             dynText = `ДИНАМИКА: Скорость ветра высокая (${Math.round(avgWind)} км/с), однако конфигурация магнитного поля (Bz) блокирует передачу энергии внутрь системы. Защита работает эффективно, бури не происходит.`;
+             dynText = `ДИНАМИКА: ${sourceNote} Скорость ветра высокая (${Math.round(avgWind)} км/с), однако текущая полярность поля (Bz) блокирует передачу энергии внутрь магнитосферы.`;
         } else {
-             dynText = `ДИНАМИКА: Поток плазмы ускорен (${Math.round(avgWind)} км/с), что способствует поддержанию геомагнитной активности.`;
+             dynText = `ДИНАМИКА: ${sourceNote} Поток плазмы ускорен (${Math.round(avgWind)} км/с), поддерживая геомагнитную активность.`;
         }
     } 
     else {
@@ -237,7 +237,7 @@ const App: React.FC = () => {
     if (avgFlareClass.includes('X')) {
         physText = "ФИЗИКА: Зарегистрирован мощный всплеск рентгеновского излучения (Класс X). Возможны краткосрочные нарушения радиосвязи на освещенной стороне планеты.";
     } else if (avgProton >= 10) {
-        physText = "ФИЗИКА: Фиксируется протонное событие (S-Scale). Поток заряженных частиц в околоземном пространстве повышен, что влияет на спутниковую электронику.";
+        physText = "ФИЗИКА: Фиксируется протонное событие (S-Scale). Поток заряженных частиц в околоземном пространстве повышен (S1+), что влияет на спутниковую электронику.";
     } else {
         physText = "ФИЗИКА: Радиационный фон в норме. Рентгеновское и протонное излучение Солнца находится на минимальных значениях.";
     }
@@ -269,9 +269,6 @@ const App: React.FC = () => {
   if (currentFlareClass.includes('M')) intensityDesc = "УМЕРЕННАЯ";
   if (currentFlareClass.includes('X')) intensityDesc = "ВЫСОКАЯ";
 
-  // Logic for Coronal Holes Stream Detection
-  const isCHStream = currentWind > 500;
-
   const significantFlaresList = detectedFlares.filter(f => f.isSignificant);
 
   // Proton Logic
@@ -284,6 +281,15 @@ const App: React.FC = () => {
   else if (currentProtonFlux >= 1000) { protonScale = "S3 (Сильный)"; protonColor = "text-red-400"; }
   else if (currentProtonFlux >= 100) { protonScale = "S2 (Умеренный)"; protonColor = "text-yellow-400"; }
   else if (currentProtonFlux >= 10) { protonScale = "S1 (Слабый)"; protonColor = "text-yellow-200"; }
+
+  // --- SCIENTIFIC SOURCE DETECTION ---
+  const isHighWind = currentWind > 500;
+  const isProtonStorm = currentProtonFlux >= 10;
+
+  // Coronal Hole Stream: High Wind + LOW Protons
+  // CME / Flare Event: High Wind + HIGH Protons (usually)
+  const isCoronalHoleSource = isHighWind && !isProtonStorm;
+  const isCMESource = isHighWind && isProtonStorm;
 
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
@@ -637,12 +643,21 @@ const App: React.FC = () => {
                 </div>
             </div>
             
-            {/* CORONAL HOLE ALERT */}
-            {isCHStream && (
+            {/* SOURCE ANALYSIS ALERTS */}
+            {isCoronalHoleSource && (
                 <div className="mb-3 flex items-center gap-2 bg-orange-900/30 border border-orange-700/50 rounded px-3 py-1.5">
                     <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
                     <span className="text-[10px] font-mono text-orange-200 uppercase tracking-wider">
-                        КОРОНАЛЬНЫЕ ДЫРЫ: ВЕРОЯТНЫЙ ИСТОЧНИК ВЕТРА
+                        КОРОНАЛЬНАЯ ДЫРА: ВЫСОКОСКОРОСТНОЙ ПОТОК
+                    </span>
+                </div>
+            )}
+            
+            {isCMESource && (
+                <div className="mb-3 flex items-center gap-2 bg-red-900/30 border border-red-700/50 rounded px-3 py-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span className="text-[10px] font-mono text-red-200 uppercase tracking-wider">
+                        ВОЗМОЖНЫЙ ВЫБРОС (CME) + ПРОТОННОЕ СОБЫТИЕ
                     </span>
                 </div>
             )}
@@ -651,6 +666,7 @@ const App: React.FC = () => {
                 flareClass={currentFlareClass} 
                 flux={currentFlareFlux} 
                 windSpeed={currentWind} 
+                isCoronalHoleSource={isCoronalHoleSource}
                 onOpenSdo={() => setIsSDOOpen(true)}
             />
 
