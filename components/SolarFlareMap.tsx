@@ -1,22 +1,22 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X, Camera } from 'lucide-react';
 
 interface SolarFlareMapProps {
   flareClass: string;
   flux: number;
-  windSpeed: number; // Used to detect Coronal Hole High Speed Streams
+  windSpeed: number;
+  isCoronalHoleSource: boolean;
   onOpenSdo: () => void;
 }
 
-export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, windSpeed, onOpenSdo }) => {
+export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, windSpeed, isCoronalHoleSource, onOpenSdo }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const [showLegend, setShowLegend] = useState(false);
 
   // Random spots generator based on current flux
   const [spots, setSpots] = useState<{angle: number, size: number}[]>([]);
-  // Coronal Holes (Dark patches) - Generated if wind speed suggests CH HSS
+  // Coronal Holes (Dark patches)
   const [holes, setHoles] = useState<{x: number, y: number, r: number, points: number[], angleOffset: number}[]>([]);
 
   useEffect(() => {
@@ -31,21 +31,17 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
       setSpots(newSpots);
 
       // 2. CORONAL HOLES LOGIC
-      // Cleaned up logic for "Neater" shapes
-      if (windSpeed > 450) {
+      // Only generate if physics suggests the wind source is a Coronal Hole (High Wind + Low Protons)
+      if (isCoronalHoleSource && windSpeed > 450) {
           const holeCount = windSpeed > 650 ? 2 : 1; 
           const newHoles = Array.from({length: holeCount}, () => {
               const numPoints = 12;
               const points = Array.from({length: numPoints}, () => 0.8 + Math.random() * 0.4); 
               
-              // Positioning fix: 
-              // Center Y of sun is at h+120. To show up in the visible top arc,
-              // Y needs to be negative relative to center.
-              // We place them in the "Northern" hemisphere of the projected sun.
+              // Positioning fix: Northern hemisphere of projection
               return {
                   x: (Math.random() - 0.5) * 0.8, 
-                  y: -0.8 + (Math.random() * 0.2), // Shifted significantly UP to be visible
-                  // Reduce size: Base 20, scales gently with wind
+                  y: -0.8 + (Math.random() * 0.2), 
                   r: 20 + (windSpeed - 400) / 15, 
                   points: points,
                   angleOffset: Math.random() * Math.PI
@@ -56,7 +52,7 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
           setHoles([]);
       }
 
-  }, [Math.floor(Math.log10(flux || 1e-8)), Math.floor(windSpeed / 100)]);
+  }, [Math.floor(Math.log10(flux || 1e-8)), Math.floor(windSpeed / 100), isCoronalHoleSource]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -136,7 +132,7 @@ export const SolarFlareMap: React.FC<SolarFlareMapProps> = ({ flareClass, flux, 
         ctx.save(); // Save state for clipping
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.clip(); // CLIP! Nothing draws outside the sun circle now
+        ctx.clip(); 
 
         // Draw Background Color
         ctx.fillStyle = mainColor;
