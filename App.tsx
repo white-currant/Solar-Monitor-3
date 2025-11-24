@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
-import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle } from 'lucide-react';
+import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
 import { InfoTooltip } from './components/InfoTooltip';
 import { SpaceSound } from './components/SpaceSound';
@@ -8,7 +8,7 @@ import { SolarMap } from './components/SolarMap';
 import { GeomagneticMap } from './components/GeomagneticMap';
 import { SolarFlareMap } from './components/SolarFlareMap';
 import { fetchSolarData, getFlareClass } from './services/noaaService';
-import { KpDataPoint, WindDataPoint, FlareDataPoint } from './types';
+import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint } from './types';
 
 // Custom styles for the star background
 const starBgStyle: React.CSSProperties = {
@@ -26,6 +26,15 @@ const formatTime = (isoString: string) => {
     try {
         const date = new Date(isoString);
         return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+        return '';
+    }
+};
+
+const formatShortDate = (isoString: string) => {
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' });
     } catch (e) {
         return '';
     }
@@ -77,6 +86,7 @@ const App: React.FC = () => {
   const [kpData, setKpData] = useState<KpDataPoint[]>([]);
   const [windData, setWindData] = useState<WindDataPoint[]>([]);
   const [flareData, setFlareData] = useState<FlareDataPoint[]>([]);
+  const [forecastData, setForecastData] = useState<ForecastDataPoint[]>([]);
   const [detectedFlares, setDetectedFlares] = useState<ExtendedFlare[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -98,6 +108,7 @@ const App: React.FC = () => {
       setKpData(result.kp);
       setWindData(result.wind);
       setFlareData(result.flares);
+      setForecastData(result.forecast || []);
       analyzeData(result.kp, result.wind, result.flares);
       
       // Detect Flares (Peaks)
@@ -150,19 +161,12 @@ const App: React.FC = () => {
   // Analysis Logic (Smoothed & Neutral)
   const analyzeData = (kp: KpDataPoint[], wind: WindDataPoint[], flares: FlareDataPoint[]) => {
     // DATA SMOOTHING (1-3 Hour averages)
-    // Kp is already a 3-hour index. We take the last known value as the "current 3-hour block status".
     const lastKp = kp[kp.length - 1]?.kp || 0;
-    
-    // Wind: Average of last 15 points (assuming 15-20 mins of data downsampled? 
-    // In noaaService we downsample every 15th row of minute data. 
-    // Let's average the last ~5 points of our *processed* array to get a stable ~1-2 hour trend.
     const avgWind = getAverage(wind, 'speed', 6); 
-    
-    // Flare: Flux oscillates rapidly. We take average flux of last 12 points (~1 hour)
     const avgFlux = getAverage(flares, 'flux', 12); 
     const avgFlareClass = getFlareClass(avgFlux);
 
-    // 1. Calculate Activity Index (Score 0-10) - RENAMED from Danger
+    // 1. Calculate Activity Index (Score 0-10)
     let score = 0;
     
     // KP Weight
@@ -171,12 +175,12 @@ const App: React.FC = () => {
     else if (lastKp >= 4) score += 2;
     else if (lastKp >= 3) score += 1;
 
-    // Wind Weight (Smoothed)
+    // Wind Weight
     if (avgWind >= 700) score += 3;
     else if (avgWind >= 500) score += 2;
     else if (avgWind >= 400) score += 1;
 
-    // Flare Weight (Smoothed)
+    // Flare Weight
     if (avgFlareClass.includes('X')) score += 3;
     else if (avgFlareClass.includes('M')) {
        const val = parseFloat(avgFlareClass.replace('M', ''));
@@ -201,7 +205,7 @@ const App: React.FC = () => {
     // 2. Generate Text Report (Neutral & Reassuring)
     let text = [];
 
-    // Kp Analysis (Calming)
+    // Kp Analysis
     if (lastKp >= 5) {
         text.push("СТАТУС: Активная фаза геомагнитного поля. Это естественное природное явление.");
         text.push("Атмосфера Земли надежно защищает биосферу.");
@@ -227,7 +231,7 @@ const App: React.FC = () => {
     setReport(text.join(" "));
   };
 
-  // Current Values (Instantaneous for Visuals)
+  // Current Values
   const currentKp = kpData[kpData.length - 1]?.kp || 0;
   const lastKpTime = kpData.length > 0 ? formatFullDate(kpData[kpData.length-1].time) : "---";
 
@@ -243,7 +247,6 @@ const App: React.FC = () => {
 
   const travelInfo = calculateTravelTimeParts(currentWind);
 
-  // Calculate active zones based on flux (Simulated to match Visualizer logic for consistency)
   const logFlux = Math.log10(currentFlareFlux || 1e-8);
   const activeZonesCount = Math.max(2, Math.min(8, Math.floor((logFlux + 8) * 2)));
   
@@ -251,7 +254,6 @@ const App: React.FC = () => {
   if (currentFlareClass.includes('M')) intensityDesc = "УМЕРЕННАЯ";
   if (currentFlareClass.includes('X')) intensityDesc = "ВЫСОКАЯ";
 
-  // Filter list: Show ONLY Significant Flares in list (C1.0+)
   const significantFlaresList = detectedFlares.filter(f => f.isSignificant);
 
   return (
@@ -265,7 +267,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.5</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.6</span>
           </div>
         </div>
         
@@ -299,9 +301,6 @@ const App: React.FC = () => {
 
         <AnalysisBox text={report} danger={dangerIndex} />
 
-        {/* 
-            LAYOUT: Single column (flex-col) to stack cards vertically on all screens.
-        */}
         <div className="flex flex-col gap-8">
           
           {/* --- CARD 1: KP INDEX --- */}
@@ -336,10 +335,8 @@ const App: React.FC = () => {
               </div>
             </div>
 
-             {/* VISUALIZATION */}
             <GeomagneticMap kp={currentKp} windSpeed={currentWind} density={currentDensity} />
 
-            {/* Interactive Chart - Fixed Height to ensure visibility */}
             <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2 relative">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={kpData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -376,6 +373,84 @@ const App: React.FC = () => {
             </div>
           </div>
 
+          {/* --- CARD 4: 3-DAY FORECAST --- */}
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
+                <CalendarDays size={16} /> ПРОГНОЗ ГЕОМАГНИТНЫХ БУРЬ
+              </h3>
+              <InfoTooltip 
+                title="Forecast (Прогноз Kp)"
+                source="NOAA SWPC (Model)"
+                description={
+                  <>
+                    <p>Прогноз геомагнитной активности на ближайшие 3 дня.</p>
+                    <p className="mt-2 text-xs text-gray-400">Столбцы показывают ожидаемый Kp-индекс с интервалом в 3 часа.</p>
+                  </>
+                }
+              />
+            </div>
+
+            <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2 relative">
+              {forecastData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart data={forecastData} margin={{ top: 27, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                      <XAxis 
+                        dataKey="time" 
+                        tickFormatter={formatShortDate} 
+                        tick={{ fill: '#6b7280', fontSize: 10 }} 
+                        axisLine={false}
+                        tickLine={false}
+                        minTickGap={30}
+                      />
+                      <YAxis 
+                        domain={[0, 9]} 
+                        tick={{ fill: '#6b7280', fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={20}
+                      />
+                      <RechartsTooltip 
+                        cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
+                        contentStyle={{ backgroundColor: '#151a25', borderColor: '#00bcd4', color: '#fff', borderRadius: '4px' }}
+                        itemStyle={{ color: '#00bcd4' }}
+                        labelFormatter={(label) => `${formatShortDate(label)} ${formatTime(label)}`}
+                        formatter={(value: number) => [`Kp: ${value}`, 'Прогноз']}
+                      />
+                      <Bar dataKey="kp" radius={[2, 2, 0, 0]}>
+                        {forecastData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={index === 0 ? '#ffffff' : (entry.kp >= 5 ? '#ff1744' : entry.kp >= 4 ? '#ffca28' : '#4fc3f7')} 
+                          />
+                        ))}
+                      </Bar>
+                      
+                      {/* Current Time Label */}
+                      <ReferenceLine 
+                        x={forecastData[0].time} 
+                        stroke="none" 
+                        label={{ 
+                            position: 'top', 
+                            value: 'СЕЙЧАС', 
+                            fill: '#ffffff', 
+                            fontSize: 10, 
+                            fontWeight: 'bold',
+                            dy: -10,
+                            className: "animate-pulse"
+                        }} 
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+              ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500 text-xs font-mono">
+                      ДАННЫЕ ПРОГНОЗА НЕДОСТУПНЫ
+                  </div>
+              )}
+            </div>
+          </div>
+
           {/* --- CARD 2: SOLAR WIND --- */}
           <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
             <div className="flex justify-between items-start mb-4">
@@ -399,7 +474,6 @@ const App: React.FC = () => {
               />
             </div>
 
-            {/* COMPACT DATA ROW: SPEED + TIME */}
             <div className="flex justify-between items-end mb-4 border-b border-gray-800 pb-4">
                <div>
                    <div className="text-gray-500 text-[9px] uppercase tracking-widest mb-1">Скорость потока</div>
@@ -433,10 +507,8 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            {/* SOLAR MAP VISUALIZATION */}
             <SolarMap speed={currentWind} density={currentDensity} kp={currentKp} />
 
-            {/* Interactive Chart - Fixed Height */}
             <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={windData} margin={{ top: 10, right: 35, left: 0, bottom: 0 }}>
@@ -457,7 +529,6 @@ const App: React.FC = () => {
                     width={35}
                   />
                   
-                  {/* Threshold Lines */}
                   <ReferenceLine 
                     y={500} 
                     stroke="#ffca28" 
@@ -522,7 +593,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 
-                {/* DETAILED STATS */}
                 <div className="text-right flex flex-col gap-1 text-[10px] font-mono text-gray-400">
                     <div className="flex items-center justify-end gap-2">
                         <span>АКТИВНЫЕ ЗОНЫ:</span>
@@ -538,10 +608,8 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-             {/* VISUALIZATION */}
             <SolarFlareMap flareClass={currentFlareClass} flux={currentFlareFlux} />
 
-            {/* --- FLARE CHART (MOVED TO TOP) --- */}
             <div className="h-[180px] bg-black/20 rounded border border-white/5 p-2 mb-4">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={flareData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -601,7 +669,6 @@ const App: React.FC = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* --- SIGNIFICANT FLARES LIST (MOVED TO BOTTOM) --- */}
             <div className="flex-1 flex flex-col max-h-[200px] bg-black/20 rounded border border-white/5 overflow-hidden">
                 <div className="text-gray-500 p-3 border-b border-gray-800 flex justify-between items-center font-bold text-xs font-mono bg-black/40 rounded-t">
                     <div className="flex items-center gap-2">
