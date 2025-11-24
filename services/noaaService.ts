@@ -1,4 +1,5 @@
-import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint } from '../types';
+
+import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint, ProtonDataPoint } from '../types';
 
 // 1. Try Direct (Best if CORS allowed - sometimes works with NOAA)
 // 2. AllOrigins (Usually reliable for text)
@@ -17,7 +18,9 @@ const URLS = {
   // Official NOAA GOES Primary X-rays (1-day)
   flare: "https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json",
   // 3-Day Forecast Kp
-  forecast: "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
+  forecast: "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json",
+  // Proton Flux (1-day)
+  proton: "https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json"
 };
 
 // Helper to determine solar flare class (A, B, C, M, X)
@@ -136,7 +139,6 @@ export const fetchSolarData = async () => {
     try {
         const forecastRaw = await smartFetch(URLS.forecast);
         const now = new Date();
-        // Filter out data older than 3 hours ago to keep the "Current" block valid
         const cutoffTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
         if (Array.isArray(forecastRaw)) {
@@ -146,10 +148,31 @@ export const fetchSolarData = async () => {
                     kp: parseFloat(row[1])
                 }))
                 .filter((item) => new Date(item.time) >= cutoffTime)
-                .slice(0, 24); // Limit to 3 days (approx 8 entries per day)
+                .slice(0, 24);
         }
     } catch (e) {
         console.warn("Forecast fetch failed", e);
+    }
+
+    // 5. Fetch Proton Flux (NOAA GOES)
+    let protonData: ProtonDataPoint[] = [];
+    try {
+        const protonRaw = await smartFetch(URLS.proton);
+        if (Array.isArray(protonRaw)) {
+            protonData = protonRaw
+                .filter((item: any) => item.energy === ">=10 MeV") // Standard S-Scale energy
+                .map((item: any) => ({
+                    time: parseUtcTime(item.time_tag),
+                    flux: parseFloat(item.flux)
+                }));
+            
+            // Downsample
+            if (protonData.length > 200) {
+                protonData = protonData.filter((_, i) => i % 5 === 0);
+            }
+        }
+    } catch (e) {
+        console.warn("Proton fetch failed", e);
     }
 
     if (kpData.length === 0 && windData.length === 0) throw new Error("Empty data received");
@@ -159,6 +182,7 @@ export const fetchSolarData = async () => {
       wind: windData,
       flares: flareData,
       forecast: forecastData,
+      protons: protonData,
       isDemo: false
     };
   } catch (error) {
@@ -195,5 +219,10 @@ const getDemoData = () => {
       kp: Math.max(1, Math.min(7, 2 + Math.random() * 4))
   }));
 
-  return { kp, wind, flares, forecast };
+  const protons: ProtonDataPoint[] = Array.from({ length: 20 }, (_, i) => ({
+      time: new Date(now.getTime() - (19 - i) * 3600000).toISOString(),
+      flux: 0.1 + Math.random() * 0.5 // Low background levels
+  }));
+
+  return { kp, wind, flares, forecast, protons };
 };
