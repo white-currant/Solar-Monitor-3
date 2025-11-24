@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Smartphone, Monitor, X, Share } from 'lucide-react';
+import { Download, Smartphone, X, Share } from 'lucide-react';
 
 export const InstallButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
