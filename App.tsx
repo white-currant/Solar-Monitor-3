@@ -243,6 +243,14 @@ const App: React.FC = () => {
 
   const travelInfo = calculateTravelTimeParts(currentWind);
 
+  // Calculate active zones based on flux (Simulated to match Visualizer logic for consistency)
+  const logFlux = Math.log10(currentFlareFlux || 1e-8);
+  const activeZonesCount = Math.max(2, Math.min(8, Math.floor((logFlux + 8) * 2)));
+  
+  let intensityDesc = "НИЗКАЯ";
+  if (currentFlareClass.includes('M')) intensityDesc = "УМЕРЕННАЯ";
+  if (currentFlareClass.includes('X')) intensityDesc = "ВЫСОКАЯ";
+
   // Filter list: Show ONLY Significant Flares in list (C1.0+)
   const significantFlaresList = detectedFlares.filter(f => f.isSignificant);
 
@@ -431,7 +439,7 @@ const App: React.FC = () => {
             {/* Interactive Chart - Fixed Height */}
             <div className="h-[160px] bg-black/20 rounded border border-white/5 p-2">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <LineChart data={windData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <LineChart data={windData} margin={{ top: 10, right: 35, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                   <XAxis 
                     dataKey="time" 
@@ -448,6 +456,21 @@ const App: React.FC = () => {
                     tickLine={false}
                     width={35}
                   />
+                  
+                  {/* Threshold Lines */}
+                  <ReferenceLine 
+                    y={500} 
+                    stroke="#ffca28" 
+                    strokeDasharray="3 3" 
+                    label={{ position: 'right', value: 'FAST', fill: '#ffca28', fontSize: 9 }} 
+                  />
+                  <ReferenceLine 
+                    y={700} 
+                    stroke="#ff1744" 
+                    strokeDasharray="3 3" 
+                    label={{ position: 'right', value: 'STORM', fill: '#ff1744', fontSize: 9 }} 
+                  />
+
                   <RechartsTooltip 
                      contentStyle={{ backgroundColor: '#151a25', borderColor: '#00bcd4', color: '#fff', borderRadius: '4px' }}
                      labelFormatter={(label) => formatTime(label)}
@@ -489,13 +512,30 @@ const App: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-end gap-2 mb-4">
-              <span className={`font-mono text-5xl leading-none drop-shadow-md ${isFlareHigh ? 'text-[#ff1744]' : 'text-white'}`}>
-                {currentFlareClass}
-              </span>
-              <div className="mb-2 px-2 py-1 bg-white/10 rounded text-xs text-gray-300">
-                 {isFlareHigh ? 'АКТИВНОСТЬ' : 'Фон'}
-              </div>
+            <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
+                <div className="flex items-end gap-3">
+                    <span className={`font-mono text-5xl leading-none drop-shadow-md ${isFlareHigh ? 'text-[#ff1744]' : 'text-white'}`}>
+                        {currentFlareClass}
+                    </span>
+                    <div className="mb-1 px-2 py-0.5 bg-white/10 rounded text-[10px] text-gray-400 uppercase tracking-wider font-bold">
+                        {isFlareHigh ? 'АКТИВНОСТЬ' : 'Фон'}
+                    </div>
+                </div>
+                
+                {/* DETAILED STATS */}
+                <div className="text-right flex flex-col gap-1 text-[10px] font-mono text-gray-400">
+                    <div className="flex items-center justify-end gap-2">
+                        <span>АКТИВНЫЕ ЗОНЫ:</span>
+                        <span className="text-white font-bold">{activeZonesCount}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                        <span>ИЗЛУЧЕНИЕ:</span>
+                        <span className={`font-bold ${isFlareHigh ? 'text-red-400' : 'text-green-400'}`}>{currentFlareFlux.toExponential(1)} W/m²</span>
+                    </div>
+                    <div className="text-gray-500 uppercase tracking-wide mt-0.5">
+                        ИНТЕНСИВНОСТЬ: <span className={isFlareHigh ? 'text-yellow-500' : 'text-gray-300'}>{intensityDesc}</span>
+                    </div>
+                </div>
             </div>
 
              {/* VISUALIZATION */}
