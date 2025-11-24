@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#050a14"/>
+  
+  <!-- Sun -->
+  <g transform="translate(256, 230)">
+    <circle cx="0" cy="0" r="90" fill="#ffca28"/>
+    <g stroke="#ffca28" stroke-width="18" stroke-linecap="round">
+      <line x1="0" y1="-120" x2="0" y2="-150"/>
+      <line x1="85" y1="-85" x2="106" y2="-106"/>
+      <line x1="120" y1="0" x2="150" y2="0"/>
+      <line x1="85" y1="85" x2="106" y2="106"/>
+      <line x1="0" y1="120" x2="0" y2="150"/>
+      <line x1="-85" y1="85" x2="-106" y2="106"/>
+      <line x1="-120" y1="0" x2="-150" y2="0"/>
+      <line x1="-85" y1="-85" x2="-106" y2="-106"/>
+    </g>
+  </g>
+
+  <!-- Satellite -->
+  <g transform="translate(360, 360) rotate(-30)">
+    <!-- Solar Panels -->
+    <rect x="-70" y="-25" width="140" height="50" fill="#e0e0e0" rx="4"/>
+    <path d="M-20 -25 V25 M20 -25 V25 M-70 0 H-20 M20 0 H70" stroke="#050a14" stroke-width="2"/>
+    
+    <!-- Body -->
+    <circle cx="0" cy="0" r="25" fill="#f5f5f5"/>
+    <!-- Dish -->
+    <path d="M-10 -35 Q0 -45 10 -35" stroke="#f5f5f5" stroke-width="4" fill="none"/>
+    <line x1="0" y1="-25" x2="0" y2="-35" stroke="#f5f5f5" stroke-width="3"/>
+  </g>
+
+  <!-- Stars -->
+  <circle cx="100" cy="100" r="3" fill="#ffffff" opacity="0.8"/>
+  <circle cx="400" cy="80" r="2" fill="#ffffff" opacity="0.6"/>
+  <circle cx="50" cy="350" r="2" fill="#ffffff" opacity="0.5"/>
+  <circle cx="450" cy="450" r="3" fill="#ffffff" opacity="0.7"/>
+  
+  <!-- Sparkle -->
+  <path d="M100 80 L105 95 L120 100 L105 105 L100 120 L95 105 L80 100 L95 95 Z" fill="#ffffff" transform="translate(-20, 20) scale(0.6)"/>
+</svg>
