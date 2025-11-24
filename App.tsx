@@ -115,7 +115,7 @@ const App: React.FC = () => {
       setFlareData(result.flares);
       setForecastData(result.forecast || []);
       setProtonData(result.protons || []);
-      analyzeData(result.kp, result.wind, result.flares);
+      analyzeData(result.kp, result.wind, result.flares, result.protons || []);
       
       // Detect Flares (Peaks)
       const peaks: ExtendedFlare[] = [];
@@ -158,11 +158,12 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Analysis Logic (Smoothed & Neutral)
-  const analyzeData = (kp: KpDataPoint[], wind: WindDataPoint[], flares: FlareDataPoint[]) => {
+  // Analysis Logic (Smoothed & Scientific)
+  const analyzeData = (kp: KpDataPoint[], wind: WindDataPoint[], flares: FlareDataPoint[], protons: ProtonDataPoint[]) => {
     const lastKp = kp[kp.length - 1]?.kp || 0;
     const avgWind = getAverage(wind, 'speed', 6); 
     const avgFlux = getAverage(flares, 'flux', 12); 
+    const avgProton = getAverage(protons, 'flux', 6);
     const avgFlareClass = getFlareClass(avgFlux);
 
     let score = 0;
@@ -198,43 +199,49 @@ const App: React.FC = () => {
 
     const parts = [];
 
-    // 1. Geomagnetic Status (Updated Logic)
-    let kpText = "";
+    // 1. STATUS (Geomagnetic Field)
+    let statusText = "";
     if (lastKp >= 7) {
-        kpText = "СТАТУС: Сильная магнитная буря (G3+). Значительное возмущение геомагнитного поля. Вероятны яркие полярные сияния. Для людей на поверхности Земли прямой угрозы нет, атмосфера работает как надежный щит.";
+        statusText = "СТАТУС: Сильная магнитная буря (G3). Порог стабильности значительно превышен. Вероятны яркие полярные сияния в средних широтах. Для людей на поверхности Земли угрозы нет благодаря атмосферному щиту.";
     } else if (lastKp >= 5) {
-        kpText = "СТАТУС: Умеренная магнитная буря (G1-G2). Активная фаза взаимодействия солнечного ветра с магнитосферой. Это естественное природное явление.";
+        statusText = "СТАТУС: Порог геомагнитной стабильности превышен. Фиксируется умеренная магнитная буря (G1-G2). Магнитосфера находится в активной фазе сопротивления солнечному ветру. Это штатный режим работы планетарной защиты.";
     } else if (lastKp >= 4) {
-        kpText = "СТАТУС: Магнитосфера в возбужденном состоянии. Наблюдается повышенная геомагнитная активность, однако порог магнитной бури не превышен.";
+        statusText = "СТАТУС: Активность приближается к порогу магнитной бури. Магнитосфера находится в возбужденном состоянии, но критический порог (G1) на данный момент не преодолен.";
     } else if (lastKp >= 3) {
-        kpText = "СТАТУС: Незначительные колебания магнитосферы (K-index 3). Это вариант нормы, характерный для высоких широт.";
+        statusText = "СТАТУС: Неустойчивое геомагнитное поле (K-index 3). Наблюдаются незначительные флуктуации, характерные для высоких широт. Обстановка в пределах природной нормы.";
     } else {
-        kpText = "СТАТУС: Геомагнитная обстановка спокойная и стабильная. Идеальный магнитосферный штиль.";
+        statusText = "СТАТУС: Спокойная геомагнитная обстановка. Поле стабильно, значимых возмущений не зарегистрировано. Благоприятные условия.";
     }
-    parts.push(kpText);
+    parts.push(statusText);
 
-    // 2. Solar Wind Status
-    let windText = "";
-    if (avgWind >= 500 && lastKp < 4) {
-        windText = `ПРИМЕЧАНИЕ: Фиксируется высокая скорость солнечного ветра (${Math.round(avgWind)} км/с), однако геомагнитный индекс в норме. Это означает, что магнитный щит Земли находится в 'закрытом' состоянии и успешно блокирует энергию потока. Бури не происходит.`;
+    // 2. DYNAMICS (Wind & Impact)
+    let dynText = "";
+    if (avgWind >= 600) {
+        dynText = `ДИНАМИКА: Фиксируется высокоскоростной поток солнечного ветра (${Math.round(avgWind)} км/с). Давление на магнитопаузу Земли повышено, система амортизирует удар.`;
     } 
-    else if (avgWind > 600) {
-        windText = `Скорость солнечного ветра существенно повышена (${Math.round(avgWind)} км/с), магнитосфера амортизирует нагрузку.`;
-    } 
-    else if (avgWind > 450) {
-        windText = `Поток плазмы умеренно ускорен (${Math.round(avgWind)} км/с).`;
+    else if (avgWind >= 500) {
+        // Check context: High wind but Low Kp?
+        if (lastKp < 4) {
+             dynText = `ДИНАМИКА: Скорость ветра высокая (${Math.round(avgWind)} км/с), однако конфигурация магнитного поля (Bz) блокирует передачу энергии внутрь системы. Защита работает эффективно, бури не происходит.`;
+        } else {
+             dynText = `ДИНАМИКА: Поток плазмы ускорен (${Math.round(avgWind)} км/с), что способствует поддержанию геомагнитной активности.`;
+        }
     } 
     else {
-        windText = `Параметры солнечного ветра стабильны (${Math.round(avgWind)} км/с).`;
+        dynText = `ДИНАМИКА: Параметры солнечного ветра (скорость ${Math.round(avgWind)} км/с) находятся в значениях, близких к фоновым. Поток стабилен.`;
     }
-    parts.push(windText);
+    parts.push(dynText);
 
-    // 3. Flare Status
-    let flareText = "";
-    if (avgFlareClass.includes('X')) flareText = "Зарегистрирован всплеск солнечной энергии (Класс X). Красивое и безопасное для поверхности Земли событие.";
-    else if (avgFlareClass.includes('M')) flareText = "Солнечная активность умеренная.";
-    else flareText = "Рентгеновское излучение Солнца минимально.";
-    parts.push(flareText);
+    // 3. PHYSICS (Flares & Protons)
+    let physText = "";
+    if (avgFlareClass.includes('X')) {
+        physText = "ФИЗИКА: Зарегистрирован мощный всплеск рентгеновского излучения (Класс X). Возможны краткосрочные нарушения радиосвязи на освещенной стороне планеты.";
+    } else if (avgProton >= 10) {
+        physText = "ФИЗИКА: Фиксируется протонное событие (S-Scale). Поток заряженных частиц в околоземном пространстве повышен, что влияет на спутниковую электронику.";
+    } else {
+        physText = "ФИЗИКА: Радиационный фон в норме. Рентгеновское и протонное излучение Солнца находится на минимальных значениях.";
+    }
+    parts.push(physText);
 
     setReport(parts.join("\n\n"));
   };
