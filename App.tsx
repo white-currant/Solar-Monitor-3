@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
 import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation } from 'lucide-react';
@@ -8,6 +9,7 @@ import { SolarMap } from './components/SolarMap';
 import { GeomagneticMap } from './components/GeomagneticMap';
 import { SolarFlareMap } from './components/SolarFlareMap';
 import { ProtonGraph } from './components/ProtonGraph';
+import { SDOModal } from './components/SDOModal';
 import { fetchSolarData, getFlareClass } from './services/noaaService';
 import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint, ProtonDataPoint } from './types';
 
@@ -95,6 +97,7 @@ const App: React.FC = () => {
   const [report, setReport] = useState("СИНХРОНИЗАЦИЯ ТЕЛЕМЕТРИИ...");
   const [dangerIndex, setDangerIndex] = useState({ score: 0, label: 'ЗАГРУЗКА...', colorClass: 'text-gray-500' });
   const [activeFlareTime, setActiveFlareTime] = useState<string | null>(null);
+  const [isSDOOpen, setIsSDOOpen] = useState(false);
 
   // Data fetching loop
   const loadData = async () => {
@@ -255,6 +258,9 @@ const App: React.FC = () => {
   if (currentFlareClass.includes('M')) intensityDesc = "УМЕРЕННАЯ";
   if (currentFlareClass.includes('X')) intensityDesc = "ВЫСОКАЯ";
 
+  // Logic for Coronal Holes Stream Detection
+  const isCHStream = currentWind > 500;
+
   const significantFlaresList = detectedFlares.filter(f => f.isSignificant);
 
   // Proton Logic
@@ -271,6 +277,8 @@ const App: React.FC = () => {
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
       
+      <SDOModal isOpen={isSDOOpen} onClose={() => setIsSDOOpen(false)} />
+
       <header className="max-w-2xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-center md:text-left">
           <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-[0.2em] flex items-center gap-4 drop-shadow-[0_0_15px_rgba(0,188,212,0.4)]">
@@ -617,8 +625,23 @@ const App: React.FC = () => {
                     </div>
                 </div>
             </div>
+            
+            {/* CORONAL HOLE ALERT */}
+            {isCHStream && (
+                <div className="mb-3 flex items-center gap-2 bg-orange-900/30 border border-orange-700/50 rounded px-3 py-1.5">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                    <span className="text-[10px] font-mono text-orange-200 uppercase tracking-wider">
+                        КОРОНАЛЬНЫЕ ДЫРЫ: ВЕРОЯТНЫЙ ИСТОЧНИК ВЕТРА
+                    </span>
+                </div>
+            )}
 
-            <SolarFlareMap flareClass={currentFlareClass} flux={currentFlareFlux} />
+            <SolarFlareMap 
+                flareClass={currentFlareClass} 
+                flux={currentFlareFlux} 
+                windSpeed={currentWind} 
+                onOpenSdo={() => setIsSDOOpen(true)}
+            />
 
             <div className="h-[180px] bg-black/20 rounded border border-white/5 p-2 mb-4">
                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
