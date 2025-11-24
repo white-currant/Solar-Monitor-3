@@ -36,7 +36,7 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
       }
     };
 
-    // Try once immediately (some browsers allow if previously interacted domain)
+    // Try once immediately
     unlockAudio();
 
     window.addEventListener('click', unlockAudio);
@@ -50,11 +50,18 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
     };
   }, []);
 
-  const toggleSound = () => {
-    if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume();
+  const toggleSound = async () => {
+    if (!audioCtxRef.current) return;
+
+    // CRITICAL FIX: If context is suspended (blocked by browser),
+    // the first click should just WAKE IT UP, not turn sound off.
+    if (audioCtxRef.current.state === 'suspended') {
+        await audioCtxRef.current.resume();
+        setIsSoundOn(true); // Ensure it stays ON
+    } else {
+        // Normal toggle behavior if already running
+        setIsSoundOn(!isSoundOn);
     }
-    setIsSoundOn(!isSoundOn);
   };
 
   const playBlip = () => {
@@ -89,13 +96,10 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
     let i = 0;
     setDisplayedText('');
     
-    // Add a small initial delay before typing starts to give user a chance to click/focus
-    // and hear the first characters if they are quick.
     const startDelay = setTimeout(() => {
         const timer = setInterval(() => {
           setDisplayedText(text.substring(0, i));
           
-          // Play sound on every 2nd character to avoid machine-gun effect
           if (i > 0 && i <= text.length && i % 2 === 0) {
             playBlip();
           }
@@ -112,46 +116,50 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
 
   return (
     <div className={`mb-8 p-5 border-l-4 bg-[#10141e]/60 backdrop-blur-md rounded shadow-[0_0_20px_rgba(0,188,212,0.05)] border border-white/10 min-h-[140px] relative transition-colors duration-500 ${danger.colorClass.replace('text-', 'border-')}`}>
-      <div className="absolute top-3 right-3 z-10">
-        <button 
-            onClick={toggleSound} 
-            className={`p-2 rounded-full transition-all border border-transparent ${isSoundOn ? 'text-[#00bcd4] bg-[#00bcd4]/10 border-[#00bcd4]/30' : 'text-gray-500 hover:text-gray-300'}`}
-            title={isSoundOn ? "Выключить звук" : "Включить звук печати"}
-        >
-            {isSoundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        </button>
-      </div>
       
-      <div className="flex flex-wrap justify-between items-center mb-4 pb-2 border-b border-white/5">
-        <div className="text-xs font-bold tracking-widest text-[#00bcd4] uppercase flex items-center gap-2">
+      {/* Header Container - Flex Layout to prevent overlap */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 pb-2 border-b border-white/5 gap-3">
+        
+        <div className="text-xs font-bold tracking-widest text-[#00bcd4] uppercase flex items-center gap-2 shrink-0">
           <span>/// ОБЩАЯ СВОДКА</span>
           <span className="text-gray-500 hidden md:inline">|</span>
           <span className="text-gray-400 hidden md:inline">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} UTC</span>
         </div>
 
-        {/* Danger Index Indicator */}
-        <div className="flex items-center gap-3 bg-black/30 px-3 py-1 rounded border border-white/10 mt-2 md:mt-0">
-            <div className="flex items-center gap-2">
-                <AlertTriangle size={16} className={danger.colorClass} />
-                <span className="text-[10px] uppercase tracking-widest text-gray-400">ГЕОМАГНИТНЫЙ ФОН:</span>
+        {/* Controls Container */}
+        <div className="flex items-center gap-3 self-end md:self-auto">
+            {/* Danger Index Indicator */}
+            <div className="flex items-center gap-3 bg-black/30 px-3 py-1 rounded border border-white/10">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle size={16} className={danger.colorClass} />
+                    <span className="text-[10px] uppercase tracking-widest text-gray-400 hidden sm:inline">ГЕОМАГНИТНЫЙ ФОН:</span>
+                </div>
+                <div className={`font-bold text-sm ${danger.colorClass}`}>
+                    {danger.label}
+                </div>
+                <InfoTooltip 
+                    title="Общий статус"
+                    description={
+                        <>
+                            <p className="mb-2">Интегральная оценка текущей космической погоды.</p>
+                            <ul className="list-disc list-inside space-y-1 mt-1">
+                                <li><span className="text-green-400">Фоновый</span>: Обычные условия.</li>
+                                <li><span className="text-yellow-400">Умеренный</span>: Повышенная активность.</li>
+                                <li><span className="text-red-500">Высокий</span>: Пиковые значения.</li>
+                            </ul>
+                        </>
+                    }
+                />
             </div>
-            <div className={`font-bold ${danger.colorClass}`}>
-                {danger.label}
-            </div>
-            <InfoTooltip 
-                title="Общий статус"
-                description={
-                    <>
-                        <p className="mb-2">Интегральная оценка текущей космической погоды.</p>
-                        <p className="text-xs text-gray-400 mb-2">Рассчитывается на основе усредненных данных за последние часы для исключения случайных помех.</p>
-                        <ul className="list-disc list-inside space-y-1 mt-1">
-                            <li><span className="text-green-400">Фоновый</span>: Обычные условия.</li>
-                            <li><span className="text-yellow-400">Умеренный</span>: Повышенная активность, безопасная для человека.</li>
-                            <li><span className="text-red-500">Высокий</span>: Пиковые значения (Бури, Вспышки).</li>
-                        </ul>
-                    </>
-                }
-            />
+
+            {/* Sound Button - Now part of the flow, no absolute positioning */}
+            <button 
+                onClick={toggleSound} 
+                className={`p-1.5 rounded-full transition-all border flex-shrink-0 ${isSoundOn ? 'text-[#00bcd4] bg-[#00bcd4]/10 border-[#00bcd4]/30' : 'text-gray-500 hover:text-gray-300 border-transparent'}`}
+                title={isSoundOn ? "Выключить звук" : "Включить звук печати"}
+            >
+                {isSoundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+            </button>
         </div>
       </div>
 
