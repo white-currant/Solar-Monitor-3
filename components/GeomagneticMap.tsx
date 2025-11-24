@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X } from 'lucide-react';
 
@@ -48,9 +49,10 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
 
         ctx.clearRect(0, 0, w, h);
 
-        // 1. Sunlight Gradient
-        const sunGrad = ctx.createRadialGradient(0, cy, 10, 80, cy, 160);
-        sunGrad.addColorStop(0, 'rgba(255, 202, 40, 0.2)');
+        // 1. Sunlight Gradient (Intensity depends on wind speed)
+        const sunIntensity = Math.min(0.8, Math.max(0.2, windSpeed / 1000));
+        const sunGrad = ctx.createRadialGradient(0, cy, 10, 80 + (windSpeed/10), cy, 160);
+        sunGrad.addColorStop(0, `rgba(255, 202, 40, ${sunIntensity})`);
         sunGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = sunGrad;
         ctx.fillRect(0, 0, cx, h);
@@ -58,15 +60,41 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
         // SCALE FACTOR for larger drawing
         const S = 1.5; 
 
-        // Physics Calculation for Breathing
-        const pressure = (density * Math.pow(windSpeed, 2)) / 200000;
-        const breath = Math.sin(time * 2) * 2;
-        const compression = (Math.min(30, Math.max(5, (pressure * 10))) + breath) * S;
+        // --- PHYSICS CALCULATIONS ---
         
-        // Magnetosphere Shape (Teardrop / Bullet)
+        // Dynamic Pressure P = rho * v^2
+        // Normal ~ 2nPa. Storm ~ 10-20nPa.
+        // We scale this to pixels for visualization.
+        const pressure = (density * Math.pow(windSpeed, 2)) / 100000; // Adjusted divider for better visual range
+        
+        // Breathing Animation (faster if wind is high)
+        const breathSpeed = 1 + (windSpeed / 400);
+        const breath = Math.sin(time * breathSpeed) * 2;
+        
+        // COMPRESSION (Day Side / Left):
+        // High pressure pushes the nose closer to Earth.
+        // Max compression shouldn't touch Earth (radius ~12*S).
+        const maxCompression = 50 * S; 
+        const compression = Math.min(maxCompression, (pressure * 3)) + breath;
+        
+        // TAIL STRETCH (Night Side / Right):
+        // High wind speed elongates the magnetotail.
+        const tailStretch = (windSpeed - 300) / 5; 
+
+        // TURBULENCE (Flapping):
+        // If Kp is high, the tail waves like a flag.
+        const isStorm = kp >= 5;
+        const turbulence = isStorm ? Math.sin(time * 3) * 10 : 0;
+
+        // Coordinates
         const r = 12 * S; // Earth Radius Visual
-        const noseX = cx - (40 * S + 30 * S - compression); 
-        const tailX = cx + (40 * S + 80 * S);
+        // Nose starts at roughly -70px from center (scaled), minus compression implies moving RIGHT (closer to 0 relative to Earth)
+        // In this coordinate system, Earth is at cx. Nose is to the left (cx - offset).
+        const baseNoseDist = 70 * S;
+        const noseX = cx - (baseNoseDist - compression); 
+        
+        const baseTailDist = 120 * S;
+        const tailX = cx + (baseTailDist + tailStretch);
         
         // Colors
         let lineColor = '#00e676';
@@ -81,25 +109,32 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
             ctx.globalAlpha = alpha;
             ctx.lineWidth = 1.5;
             ctx.setLineDash([5, 5]);
-            ctx.lineDashOffset = -time * 20; 
+            ctx.lineDashOffset = -time * (10 + windSpeed/50); // Flow speed depends on wind speed
 
-            ctx.moveTo(cx, cy - (10 * S)); // North Pole
+            // North Pole
+            ctx.moveTo(cx, cy - (10 * S)); 
+            
+            // Control Points for Bezier
+            // We add 'turbulence' to the Y coordinates of the tail control points
             
             const dX = noseX - (scale * 10 * S) + (Math.random()-0.5)*jitter;
             
-            // Left lobe
+            // Left lobe (Day side - Compressed)
             ctx.bezierCurveTo(
                 dX, cy - (40 * scale * S), 
                 dX, cy + (40 * scale * S), 
                 cx, cy + (10 * S) // South Pole
             );
             
-            // Right lobe (Tail)
+            // Right lobe (Tail side - Stretched & Turbulent)
+            // Scale effect increases towards the tail
+            const tailYOffset = turbulence * scale; 
             const tX = tailX + (scale * 20 * S);
+            
             ctx.bezierCurveTo(
-                tX, cy + (40 * scale * S), 
-                tX, cy - (40 * scale * S), 
-                cx, cy - (10 * S)
+                tX, cy + (40 * scale * S) + tailYOffset, 
+                tX, cy - (40 * scale * S) + tailYOffset, 
+                cx, cy - (10 * S) // Back to North Pole
             );
             
             ctx.stroke();
@@ -128,9 +163,11 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
 
         // Aurora Glow
         if (kp >= 5) {
-            ctx.fillStyle = `rgba(0, 255, 100, 0.5)`;
+            const glowSize = 4 + (Math.sin(time * 10) * 2);
+            ctx.fillStyle = `rgba(0, 255, 100, 0.6)`;
             ctx.beginPath();
-            ctx.arc(cx, cy, r + 4, 0, Math.PI*2);
+            ctx.arc(cx, cy - (r-2), glowSize, 0, Math.PI*2); // North
+            ctx.arc(cx, cy + (r-2), glowSize, 0, Math.PI*2); // South
             ctx.fill();
         }
 
@@ -140,8 +177,14 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
             ctx.font = '9px monospace';
             ctx.fillText('ДАВЛЕНИЕ ВЕТРА', 10, cy);
             
+            ctx.textAlign = 'right';
             ctx.fillStyle = '#6b7280';
-            ctx.fillText(kp >= 5 ? 'МАГНИТОСФЕРА (СЖАТИЕ)' : 'МАГНИТОСФЕРА (НОРМА)', w - 130, h-10);
+            let statusText = 'МАГНИТОСФЕРА (НОРМА)';
+            if (pressure > 20 || kp >= 5) statusText = 'МАГНИТОСФЕРА (СЖАТИЕ/ШТОРМ)';
+            else if (pressure > 10) statusText = 'МАГНИТОСФЕРА (НАГРУЗКА)';
+            
+            ctx.fillText(statusText, w - 10, h-10);
+            ctx.textAlign = 'left';
         }
     };
     
@@ -154,7 +197,7 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
   }, [kp, showLegend, windSpeed, density]);
 
   return (
-    <div className="w-full h-[260px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden">
+    <div className="w-full h-[260px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono tracking-widest pointer-events-none">
         МОДЕЛЬ МАГНИТОСФЕРЫ
@@ -174,15 +217,15 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
             <ul className="space-y-2">
                 <li className="flex items-center gap-2">
                     <span className="text-yellow-400 font-bold">Свечение слева:</span>
-                    <span>Давление солнечного ветра.</span>
+                    <span>Давление ветра. Сильнее ветер = ярче свет.</span>
                 </li>
                 <li className="flex items-center gap-2">
-                    <span className="text-green-400 font-bold">Форма капли:</span>
-                    <span>Реальная форма магнитного щита Земли.</span>
+                    <span className="text-green-400 font-bold">Форма:</span>
+                    <span>При шторме сжимается слева и вытягивается справа.</span>
                 </li>
                 <li className="flex items-center gap-2">
                     <span className="text-red-500">Вибрация:</span>
-                    <span>Реакция поля на геомагнитный шторм.</span>
+                    <span>Турбулентность хвоста при высоком Kp-индексе.</span>
                 </li>
             </ul>
         </div>
