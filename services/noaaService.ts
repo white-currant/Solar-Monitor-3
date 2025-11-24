@@ -1,4 +1,4 @@
-import { KpDataPoint, WindDataPoint, FlareDataPoint } from '../types';
+import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint } from '../types';
 
 // 1. Try Direct (Best if CORS allowed - sometimes works with NOAA)
 // 2. AllOrigins (Usually reliable for text)
@@ -15,7 +15,9 @@ const URLS = {
   // 1-day plasma data
   wind: "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json", 
   // Official NOAA GOES Primary X-rays (1-day)
-  flare: "https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json"
+  flare: "https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json",
+  // 3-Day Forecast Kp
+  forecast: "https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json"
 };
 
 // Helper to determine solar flare class (A, B, C, M, X)
@@ -129,12 +131,34 @@ export const fetchSolarData = async () => {
         }
     }
 
+    // 4. Fetch Forecast (NOAA Forecast JSON)
+    let forecastData: ForecastDataPoint[] = [];
+    try {
+        const forecastRaw = await smartFetch(URLS.forecast);
+        const now = new Date();
+        // Filter out data older than 3 hours ago to keep the "Current" block valid
+        const cutoffTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
+        if (Array.isArray(forecastRaw)) {
+            forecastData = forecastRaw.slice(1)
+                .map((row: any) => ({
+                    time: parseUtcTime(row[0]),
+                    kp: parseFloat(row[1])
+                }))
+                .filter((item) => new Date(item.time) >= cutoffTime)
+                .slice(0, 24); // Limit to 3 days (approx 8 entries per day)
+        }
+    } catch (e) {
+        console.warn("Forecast fetch failed", e);
+    }
+
     if (kpData.length === 0 && windData.length === 0) throw new Error("Empty data received");
 
     return {
       kp: kpData,
       wind: windData,
       flares: flareData,
+      forecast: forecastData,
       isDemo: false
     };
   } catch (error) {
@@ -166,5 +190,10 @@ const getDemoData = () => {
     };
   });
 
-  return { kp, wind, flares };
+  const forecast: ForecastDataPoint[] = Array.from({ length: 24 }, (_, i) => ({
+      time: new Date(now.getTime() + i * 3 * 3600000).toISOString(),
+      kp: Math.max(1, Math.min(7, 2 + Math.random() * 4))
+  }));
+
+  return { kp, wind, flares, forecast };
 };
