@@ -46,6 +46,14 @@ const calculateTravelTimeParts = (speedKmS: number) => {
     return { hours, minutes };
 };
 
+// Helper to get average of last N items
+const getAverage = (data: any[], key: string, count: number) => {
+    if (!data || data.length === 0) return 0;
+    const slice = data.slice(-count);
+    const sum = slice.reduce((acc, curr) => acc + (curr[key] || 0), 0);
+    return sum / slice.length;
+};
+
 interface ExtendedFlare extends FlareDataPoint {
     isSignificant: boolean; 
 }
@@ -58,7 +66,7 @@ const App: React.FC = () => {
   const [detectedFlares, setDetectedFlares] = useState<ExtendedFlare[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [report, setReport] = useState("Инициализация нейросети... Сбор данных...");
+  const [report, setReport] = useState("Анализ текущих параметров среды...");
   const [dangerIndex, setDangerIndex] = useState({ score: 0, label: 'ЗАГРУЗКА...', colorClass: 'text-gray-500' });
   const [activeFlareTime, setActiveFlareTime] = useState<string | null>(null);
 
@@ -125,71 +133,87 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Analysis Logic
+  // Analysis Logic (Smoothed & Neutral)
   const analyzeData = (kp: KpDataPoint[], wind: WindDataPoint[], flares: FlareDataPoint[]) => {
+    // DATA SMOOTHING (1-3 Hour averages)
+    // Kp is already a 3-hour index. We take the last known value as the "current 3-hour block status".
     const lastKp = kp[kp.length - 1]?.kp || 0;
-    const lastWind = wind[wind.length - 1]?.speed || 0;
-    const lastFlareFlux = flares[flares.length - 1]?.flux || 0;
-    const lastFlareClass = getFlareClass(lastFlareFlux);
+    
+    // Wind: Average of last 15 points (assuming 15-20 mins of data downsampled? 
+    // In noaaService we downsample every 15th row of minute data. 
+    // Let's average the last ~5 points of our *processed* array to get a stable ~1-2 hour trend.
+    const avgWind = getAverage(wind, 'speed', 6); 
+    
+    // Flare: Flux oscillates rapidly. We take average flux of last 12 points (~1 hour)
+    const avgFlux = getAverage(flares, 'flux', 12); 
+    const avgFlareClass = getFlareClass(avgFlux);
 
-    // 1. Calculate Danger Index (Score 0-10)
+    // 1. Calculate Activity Index (Score 0-10) - RENAMED from Danger
     let score = 0;
     
-    // KP Impact (Weight 40%)
+    // KP Weight
     if (lastKp >= 7) score += 4;
     else if (lastKp >= 5) score += 3;
     else if (lastKp >= 4) score += 2;
     else if (lastKp >= 3) score += 1;
 
-    // Wind Impact (Weight 30%)
-    if (lastWind >= 700) score += 3;
-    else if (lastWind >= 500) score += 2;
-    else if (lastWind >= 400) score += 1;
+    // Wind Weight (Smoothed)
+    if (avgWind >= 700) score += 3;
+    else if (avgWind >= 500) score += 2;
+    else if (avgWind >= 400) score += 1;
 
-    // Flare Impact (Weight 30%)
-    if (lastFlareClass.includes('X')) score += 3;
-    else if (lastFlareClass.includes('M')) {
-       const val = parseFloat(lastFlareClass.replace('M', ''));
+    // Flare Weight (Smoothed)
+    if (avgFlareClass.includes('X')) score += 3;
+    else if (avgFlareClass.includes('M')) {
+       const val = parseFloat(avgFlareClass.replace('M', ''));
        if (val >= 5) score += 2;
        else score += 1;
     }
 
-    // Determine Level
-    let dLabel = 'НИЗКИЙ';
+    // Determine Level (Neutral Terminology)
+    let dLabel = 'ФОНОВЫЙ';
     let dColor = 'text-[#00e676]'; // Green
 
     if (score >= 5) {
-        dLabel = 'КРИТИЧЕСКИЙ';
+        dLabel = 'ВЫСОКИЙ'; // High
         dColor = 'text-[#ff1744]'; // Red
     } else if (score >= 3) {
-        dLabel = 'ПОВЫШЕННЫЙ';
+        dLabel = 'УМЕРЕННЫЙ'; // Moderate
         dColor = 'text-[#ffca28]'; // Yellow
     }
 
     setDangerIndex({ score, label: dLabel, colorClass: dColor });
 
-    // 2. Generate Text Report
+    // 2. Generate Text Report (Neutral & Reassuring)
     let text = [];
 
-    // Kp Analysis
-    if (lastKp >= 5) text.push("ВНИМАНИЕ: ЗАФИКСИРОВАНА МАГНИТНАЯ БУРЯ. Возможны сбои в работе спутников и GPS.");
-    else if (lastKp >= 3) text.push("СОСТОЯНИЕ: Магнитосфера в возбужденном состоянии. Метеозависимым приготовиться.");
-    else text.push("СОСТОЯНИЕ: Геомагнитная обстановка спокойная. Угроз не выявлено.");
+    // Kp Analysis (Calming)
+    if (lastKp >= 5) {
+        text.push("СТАТУС: Активная фаза геомагнитного поля. Это естественное природное явление.");
+        text.push("Атмосфера Земли надежно защищает биосферу.");
+        text.push("Возможно наблюдение полярных сияний в средних широтах.");
+    } else if (lastKp >= 3) {
+        text.push("СТАТУС: Незначительные колебания магнитосферы.");
+        text.push("Естественный природный фон, благоприятный для самочувствия.");
+    } else {
+        text.push("СТАТУС: Геомагнитная обстановка спокойная и стабильная.");
+        text.push("Оптимальные условия для отдыха и работы.");
+    }
 
     // Wind Analysis
-    if (lastWind > 600) text.push(`\nСкорость солнечного ветра экстремальная (${Math.round(lastWind)} км/с).`);
-    else if (lastWind > 450) text.push(`\nПоток плазмы ускорен (${Math.round(lastWind)} км/с).`);
-    else text.push(`\nСолнечный ветер в норме (${Math.round(lastWind)} км/с).`);
+    if (avgWind > 600) text.push(`\nСкорость солнечного ветра повышена (${Math.round(avgWind)} км/с), магнитосфера успешно амортизирует поток.`);
+    else if (avgWind > 450) text.push(`\nПоток плазмы в пределах динамической нормы (${Math.round(avgWind)} км/с).`);
+    else text.push(`\nПараметры солнечного ветра стабильны (${Math.round(avgWind)} км/с).`);
 
     // Flare Analysis
-    if (lastFlareClass.includes('X')) text.push("\nРАДИАЦИОННАЯ ТРЕВОГА: Вспышка класса X. Риск отключения радиосвязи.");
-    else if (lastFlareClass.includes('M')) text.push("\nВысокая вспышечная активность (Класс M).");
-    else text.push("\nРентгеновское излучение Солнца фоновое.");
+    if (avgFlareClass.includes('X')) text.push("\nЗарегистрирован всплеск солнечной энергии (Класс X). Красивое и безопасное для поверхности Земли событие.");
+    else if (avgFlareClass.includes('M')) text.push("\nСолнечная активность умеренная.");
+    else text.push("\nРентгеновское излучение Солнца минимально.");
 
     setReport(text.join(" "));
   };
 
-  // Current Values
+  // Current Values (Instantaneous for Visuals)
   const currentKp = kpData[kpData.length - 1]?.kp || 0;
   const currentWind = windData[windData.length - 1]?.speed || 0;
   const currentDensity = windData[windData.length - 1]?.density || 0;
@@ -205,7 +229,7 @@ const App: React.FC = () => {
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
       
-      <header className="max-w-4xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+      <header className="max-w-2xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-center md:text-left">
           <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-[0.2em] flex items-center gap-4 drop-shadow-[0_0_15px_rgba(0,188,212,0.4)]">
             Solar Monitor
@@ -213,7 +237,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.3</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.4</span>
           </div>
         </div>
         
@@ -232,7 +256,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto">
+      <main className="max-w-2xl mx-auto">
         
         {/* CONNECTION ERROR BANNER */}
         {fetchError && (
@@ -262,11 +286,11 @@ const App: React.FC = () => {
                 title="Kp-Index (Планетарный)"
                 description={
                   <>
-                    <p>Показатель геомагнитной активности Земли.</p>
+                    <p>Глобальный индекс геомагнитной активности.</p>
                     <ul className="mt-2 list-disc list-inside space-y-1">
-                      <li><span className="text-green-400">0-3</span>: Спокойно (Норма)</li>
-                      <li><span className="text-yellow-400">4</span>: Возмущение (Внимание)</li>
-                      <li><span className="text-red-500">5-9</span>: <strong className="text-red-400">Магнитная буря</strong> (Опасно)</li>
+                      <li><span className="text-green-400">0-3</span>: Спокойное поле</li>
+                      <li><span className="text-yellow-400">4</span>: Возмущенное поле</li>
+                      <li><span className="text-red-500">5-9</span>: <span className="text-red-400">Магнитная буря</span></li>
                     </ul>
                   </>
                 }
@@ -278,7 +302,7 @@ const App: React.FC = () => {
                 {currentKp.toFixed(1)}
               </span>
               <div className="mb-2 px-2 py-1 bg-white/10 rounded text-xs text-gray-300">
-                {currentKp >= 5 ? 'БУРЯ' : currentKp >= 4 ? 'Активно' : 'Спокойно'}
+                {currentKp >= 5 ? 'БУРЯ' : currentKp >= 4 ? 'Возбуждение' : 'Спокойно'}
               </div>
             </div>
 
@@ -332,11 +356,11 @@ const App: React.FC = () => {
                 title="Solar Wind Speed"
                 description={
                   <>
-                    <p>Скорость потока частиц от Солнца к Земле.</p>
+                    <p>Скорость потока частиц от Солнца.</p>
                     <ul className="mt-2 list-disc list-inside space-y-1">
-                      <li><span className="text-green-400">300-400 км/с</span>: Норма</li>
-                      <li><span className="text-yellow-400">&gt;500 км/с</span>: Высокая скорость</li>
-                      <li><span className="text-red-500">&gt;700 км/с</span>: <strong className="text-red-400">Ударная волна</strong></li>
+                      <li><span className="text-green-400">300-400 км/с</span>: Обычный поток</li>
+                      <li><span className="text-yellow-400">&gt;500 км/с</span>: Скоростной поток</li>
+                      <li><span className="text-red-500">&gt;700 км/с</span>: <span className="text-red-400">Высокоскоростной</span></li>
                     </ul>
                   </>
                 }
@@ -425,11 +449,11 @@ const App: React.FC = () => {
                 title="Solar Flares (Вспышки)"
                 description={
                   <>
-                    <p>Мощные выбросы энергии на Солнце (Рентген).</p>
+                    <p>Импульсные всплески излучения.</p>
                     <ul className="mt-2 list-disc list-inside space-y-1">
-                      <li><span className="text-green-400">A, B, C</span>: Обычная активность</li>
-                      <li><span className="text-yellow-400">M</span>: Средние вспышки (Радиопомехи)</li>
-                      <li><span className="text-red-500">X</span>: <strong className="text-red-400">Опасные</strong> (Радиация)</li>
+                      <li><span className="text-green-400">A, B, C</span>: Базовый уровень</li>
+                      <li><span className="text-yellow-400">M</span>: Умеренные вспышки</li>
+                      <li><span className="text-red-500">X</span>: <span className="text-red-400">Мощные вспышки</span></li>
                     </ul>
                   </>
                 }
@@ -453,7 +477,7 @@ const App: React.FC = () => {
                 <div className="text-gray-500 p-3 border-b border-gray-800 flex justify-between items-center font-bold text-xs font-mono bg-black/40 rounded-t">
                     <div className="flex items-center gap-2">
                         <span>ЗНАЧИМЫЕ ВСПЫШКИ (КЛАСС C+)</span>
-                        <InfoTooltip title="Список вспышек" description="Список включает только значимые вспышки класса C1.0 и выше за последние 24 часа." />
+                        <InfoTooltip title="Список вспышек" description="Регистрируются только события класса C1.0 и выше, которые выделяются на общем фоне." />
                     </div>
                     <span className="text-[10px] text-gray-600">{significantFlaresList.length} ЗА 24Ч</span>
                 </div>
