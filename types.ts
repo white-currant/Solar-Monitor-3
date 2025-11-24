@@ -1,3 +1,4 @@
+
 export interface KpDataPoint {
   time: string;
   kp: number;
@@ -21,11 +22,17 @@ export interface ForecastDataPoint {
   kp: number;
 }
 
+export interface ProtonDataPoint {
+  time: string;
+  flux: number; // pfu >= 10 MeV
+}
+
 export interface SolarStatus {
   kp: KpDataPoint[];
   wind: WindDataPoint[];
   flares: FlareDataPoint[];
   forecast: ForecastDataPoint[];
+  protons: ProtonDataPoint[];
   loading: boolean;
   error: string | null;
 }
