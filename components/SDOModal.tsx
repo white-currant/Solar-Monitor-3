@@ -13,28 +13,28 @@ const CHANNELS = [
         label: 'AIA 193Å',
         color: 'border-[#a1887f]', // Bronze
         desc: 'Корональные дыры. Источник ветра.',
-        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0193.jpg'
+        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0193.jpg'
     },
     {
         id: '304',
         label: 'AIA 304Å',
         color: 'border-[#ef5350]', // Red
         desc: 'Протуберанцы и нити (Хромосфера).',
-        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0304.jpg'
+        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0304.jpg'
     },
     {
         id: '131',
         label: 'AIA 131Å',
         color: 'border-[#26c6da]', // Teal
         desc: 'Вспышки (Экстремально горячая плазма).',
-        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_0131.jpg'
+        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0131.jpg'
     },
     {
         id: 'HMII',
         label: 'HMI SPOTS',
         color: 'border-[#ffca28]', // Orange
         desc: 'Пятна на поверхности (Видимый свет).',
-        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_HMII.jpg'
+        url: 'https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_HMII.jpg'
     }
 ];
 
