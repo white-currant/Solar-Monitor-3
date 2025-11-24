@@ -19,17 +19,25 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
+    // 1. Initialize AudioContext immediately (it will start in 'suspended' state)
+    try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+            audioCtxRef.current = new AudioContextClass();
+        }
+    } catch (e) {
+        console.warn("Web Audio API not supported");
+    }
+
+    // 2. Unlock function to resume context on ANY interaction
     const unlockAudio = () => {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
       }
-      if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
-      }
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
     };
+
+    // Try once immediately (some browsers allow if previously interacted domain)
+    unlockAudio();
 
     window.addEventListener('click', unlockAudio);
     window.addEventListener('touchstart', unlockAudio);
@@ -43,52 +51,63 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
   }, []);
 
   const toggleSound = () => {
-    if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
+    if (audioCtxRef.current?.state === 'suspended') {
         audioCtxRef.current.resume();
     }
     setIsSoundOn(!isSoundOn);
   };
 
   const playBlip = () => {
+     // Only play if sound is on, context exists, and context is running (not suspended)
      if (!isSoundOn || !audioCtxRef.current || audioCtxRef.current.state === 'suspended') return;
-     const ctx = audioCtxRef.current;
      
-     const osc = ctx.createOscillator();
-     const gain = ctx.createGain();
-     
-     osc.type = 'sine';
-     const freq = 800 + Math.random() * 100;
-     osc.frequency.setValueAtTime(freq, ctx.currentTime);
-     
-     gain.gain.setValueAtTime(0.01, ctx.currentTime); 
-     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
-     
-     osc.connect(gain);
-     gain.connect(ctx.destination);
-     
-     osc.start();
-     osc.stop(ctx.currentTime + 0.05);
+     try {
+         const ctx = audioCtxRef.current;
+         const osc = ctx.createOscillator();
+         const gain = ctx.createGain();
+         
+         osc.type = 'sine';
+         // Randomize pitch slightly for typewriter effect
+         const freq = 800 + Math.random() * 100; 
+         osc.frequency.setValueAtTime(freq, ctx.currentTime);
+         
+         // Short blip envelope
+         gain.gain.setValueAtTime(0.02, ctx.currentTime); 
+         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+         
+         osc.connect(gain);
+         gain.connect(ctx.destination);
+         
+         osc.start();
+         osc.stop(ctx.currentTime + 0.05);
+     } catch(e) {
+         // Ignore audio errors
+     }
   };
 
   useEffect(() => {
     let i = 0;
     setDisplayedText('');
     
-    const timer = setInterval(() => {
-      setDisplayedText(text.substring(0, i));
-      
-      if (i > 0 && i < text.length && i % 2 === 0) {
-        playBlip();
-      }
-      
-      i++;
-      if (i > text.length) clearInterval(timer);
-    }, 25); 
+    // Add a small initial delay before typing starts to give user a chance to click/focus
+    // and hear the first characters if they are quick.
+    const startDelay = setTimeout(() => {
+        const timer = setInterval(() => {
+          setDisplayedText(text.substring(0, i));
+          
+          // Play sound on every 2nd character to avoid machine-gun effect
+          if (i > 0 && i <= text.length && i % 2 === 0) {
+            playBlip();
+          }
+          
+          i++;
+          if (i > text.length) clearInterval(timer);
+        }, 25); 
 
-    return () => clearInterval(timer);
+        return () => clearInterval(timer);
+    }, 500);
+
+    return () => clearTimeout(startDelay);
   }, [text, isSoundOn]);
 
   return (
