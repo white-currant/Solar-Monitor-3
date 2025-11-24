@@ -16,10 +16,16 @@ export interface FlareDataPoint {
   class: string;
 }
 
+export interface ForecastDataPoint {
+  time: string;
+  kp: number;
+}
+
 export interface SolarStatus {
   kp: KpDataPoint[];
   wind: WindDataPoint[];
   flares: FlareDataPoint[];
+  forecast: ForecastDataPoint[];
   loading: boolean;
   error: string | null;
 }
