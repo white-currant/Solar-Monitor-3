@@ -31,6 +31,20 @@ const formatTime = (isoString: string) => {
     }
 };
 
+const formatFullDate = (isoString: string) => {
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('ru-RU', { 
+            day: 'numeric', 
+            month: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    } catch (e) {
+        return '---';
+    }
+};
+
 // Helper to calculate travel time from Satellite (L1 Point) to Earth
 // Distance L1 to Earth is approx 1.5 million km
 const calculateTravelTimeParts = (speedKmS: number) => {
@@ -215,10 +229,16 @@ const App: React.FC = () => {
 
   // Current Values (Instantaneous for Visuals)
   const currentKp = kpData[kpData.length - 1]?.kp || 0;
+  const lastKpTime = kpData.length > 0 ? formatFullDate(kpData[kpData.length-1].time) : "---";
+
   const currentWind = windData[windData.length - 1]?.speed || 0;
   const currentDensity = windData[windData.length - 1]?.density || 0;
+  const lastWindTime = windData.length > 0 ? formatFullDate(windData[windData.length-1].time) : "---";
+
   const currentFlareClass = flareData[flareData.length - 1]?.class || "A0.0";
   const currentFlareFlux = flareData[flareData.length - 1]?.flux || 0;
+  const lastFlareTime = flareData.length > 0 ? formatFullDate(flareData[flareData.length-1].time) : "---";
+  
   const isFlareHigh = currentFlareClass.includes('M') || currentFlareClass.includes('X');
 
   const travelInfo = calculateTravelTimeParts(currentWind);
@@ -237,7 +257,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.4</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.5</span>
           </div>
         </div>
         
@@ -284,6 +304,8 @@ const App: React.FC = () => {
               </h3>
               <InfoTooltip 
                 title="Kp-Index (Планетарный)"
+                source="NOAA SWPC / GFZ"
+                lastUpdate={lastKpTime}
                 description={
                   <>
                     <p>Глобальный индекс геомагнитной активности.</p>
@@ -354,6 +376,8 @@ const App: React.FC = () => {
               </h3>
               <InfoTooltip 
                 title="Solar Wind Speed"
+                source="DSCOVR (L1 Orbit)"
+                lastUpdate={lastWindTime}
                 description={
                   <>
                     <p>Скорость потока частиц от Солнца.</p>
@@ -381,7 +405,10 @@ const App: React.FC = () => {
                <div className="text-right">
                    <div className="text-gray-500 text-[9px] uppercase tracking-widest mb-1 flex items-center justify-end gap-1">
                         Прилет от L1 (DSCOVR)
-                        <InfoTooltip title="Время прилета" description="Спутник DSCOVR находится в точке L1 (1.5 млн км от Земли). Это время, за которое солнечный ветер, зафиксированный спутником прямо сейчас, достигнет Земли." />
+                        <InfoTooltip 
+                            title="Время прилета" 
+                            description="Спутник DSCOVR находится в точке L1 (1.5 млн км от Земли). Это расчетное время, за которое солнечный ветер, зафиксированный спутником, достигнет магнитосферы Земли при текущей скорости." 
+                        />
                    </div>
                    <div className="flex items-center justify-end gap-2 font-mono text-[#00bcd4]">
                         <Clock size={18} />
@@ -447,6 +474,8 @@ const App: React.FC = () => {
               </h3>
               <InfoTooltip 
                 title="Solar Flares (Вспышки)"
+                source="GOES-16/18 (Sat)"
+                lastUpdate={lastFlareTime}
                 description={
                   <>
                     <p>Импульсные всплески излучения.</p>
