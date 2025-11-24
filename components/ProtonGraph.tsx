@@ -10,7 +10,6 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const particlesRef = useRef<{x: number, y: number, speed: number, len: number, alpha: number}[]>([]);
-  const initializedRef = useRef(false);
   const [showLegend, setShowLegend] = useState(false);
 
   useEffect(() => {
@@ -42,17 +41,16 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
 
         const w = canvas.width;
         const h = canvas.height;
+        const time = Date.now() * 0.001;
 
+        // --- PHYSICS LOGIC ---
+        
         // Flux Scaling
         // S0 (Background) < 10
         // S1 (Minor) > 10
         // S2 (Moderate) > 100
         // S3 (Strong) > 1000
         
-        // Visual Count: Scale logarithmically
-        // flux 0.1 -> ~5 particles
-        // flux 10 -> ~20 particles
-        // flux 1000 -> ~100 particles
         const targetCount = Math.max(5, Math.min(150, Math.log10(Math.max(0.1, flux)) * 30 + 10));
         
         // Adjust pool size
@@ -72,15 +70,15 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
         ctx.fillStyle = '#10141e';
         ctx.fillRect(0, 0, w, h);
 
-        // Storm Warning Background
+        // Storm Warning Background Glow
         if (flux >= 10) {
             const intensity = Math.min(0.3, Math.log10(flux) * 0.05);
-            ctx.fillStyle = `rgba(0, 230, 118, ${intensity})`; // Radioactive green glow
+            ctx.fillStyle = `rgba(0, 230, 118, ${intensity})`; 
             ctx.fillRect(0, 0, w, h);
         }
 
-        // Draw Particles (Rain)
-        ctx.strokeStyle = flux >= 100 ? '#ffff00' : '#00e676'; // Green normal, Yellow/Red for storm
+        // 1. Draw Particles (Rain)
+        ctx.strokeStyle = flux >= 100 ? '#ffff00' : '#00e676'; 
         if (flux >= 1000) ctx.strokeStyle = '#ff1744';
 
         ctx.lineWidth = 1.5;
@@ -100,10 +98,42 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
         });
         ctx.globalAlpha = 1;
 
+        // --- DRAW ASSETS ---
+
+        // Determine Impact Levels
+        // Satellite (GPS) - Sensitive to > 100 pfu (S2)
+        let satStatus = 'OK';
+        let satColor = '#00bcd4';
+        let satJitter = 0;
+        
+        if (flux >= 100) { satStatus = 'WARN'; satColor = '#ffca28'; }
+        if (flux >= 1000) { satStatus = 'FAIL'; satColor = '#ff1744'; satJitter = 2; }
+        if (flux >= 10000) { satStatus = 'CRIT'; satColor = '#ff1744'; satJitter = 5; }
+
+        // Plane (Atmosphere) - Sensitive to > 1000 pfu (S3) for HF Radio/Radiation
+        let planeStatus = 'OK';
+        let planeColor = '#00e676';
+        if (flux >= 1000) { planeStatus = 'WARN'; planeColor = '#ffca28'; }
+        if (flux >= 10000) { planeStatus = 'RISK'; planeColor = '#ff1744'; }
+
+        // Draw Satellite (Orbit - High)
+        const satX = (w * 0.8) + (Math.random() - 0.5) * satJitter;
+        const satY = (h * 0.25) + Math.sin(time) * 5 + (Math.random() - 0.5) * satJitter;
+        
+        drawSatellite(ctx, satX, satY, satColor, satStatus);
+
+        // Draw Plane (Atmosphere - Low)
+        const planeSpeed = 0.5;
+        const planeX = ((time * 30) % (w + 100)) - 50; // Moving
+        const planeY = h * 0.65;
+        
+        drawPlane(ctx, planeX, planeY, planeColor, planeStatus);
+
+        // Legend / HUD
         if (!showLegend) {
             ctx.fillStyle = '#6b7280';
             ctx.font = '10px monospace';
-            ctx.fillText('ПОТОК ЧАСТИЦ (ВИЗУАЛИЗАЦИЯ)', 10, h-10);
+            ctx.fillText('МОДЕЛЬ ВОЗДЕЙСТВИЯ', 10, h-10);
             
             let status = "ФОН";
             if (flux >= 10) status = "ШТОРМ S1";
@@ -112,8 +142,75 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
             if (flux >= 10000) status = "ШТОРМ S4";
             
             ctx.fillStyle = flux >= 10 ? '#ffca28' : '#4b5563';
-            ctx.fillText(`СТАТУС: ${status}`, w - 100, h - 10);
+            ctx.textAlign = 'right';
+            ctx.fillText(`СТАТУС: ${status}`, w - 10, h - 10);
+            ctx.textAlign = 'left';
         }
+    };
+
+    // Helper: Draw Satellite
+    const drawSatellite = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, status: string) => {
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // Panels
+        ctx.fillStyle = '#1565c0'; // Solar panel blue
+        ctx.fillRect(-18, -4, 36, 8);
+        // Body
+        ctx.fillStyle = color;
+        ctx.fillRect(-6, -6, 12, 12);
+        // Antenna
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.moveTo(0, 6);
+        ctx.lineTo(0, 12);
+        ctx.stroke();
+        
+        // Pulse if critical
+        if (status === 'FAIL' || status === 'CRIT') {
+            if (Math.floor(Date.now() / 200) % 2 === 0) {
+                ctx.strokeStyle = '#ff1744';
+                ctx.beginPath();
+                ctx.moveTo(-10, -10); ctx.lineTo(10, 10);
+                ctx.moveTo(10, -10); ctx.lineTo(-10, 10);
+                ctx.stroke();
+            }
+        }
+
+        // Label
+        ctx.fillStyle = color;
+        ctx.font = '9px monospace';
+        ctx.fillText(`GPS: ${status}`, 20, 4);
+        
+        ctx.restore();
+    };
+
+    // Helper: Draw Plane
+    const drawPlane = (ctx: CanvasRenderingContext2D, x: number, y: number, color: string, status: string) => {
+        ctx.save();
+        ctx.translate(x, y);
+        
+        ctx.fillStyle = color;
+        // Fuselage
+        ctx.beginPath();
+        ctx.moveTo(10, 0);
+        ctx.lineTo(-10, 0);
+        ctx.lineTo(-12, -4); // Tail
+        ctx.lineTo(-8, 0);
+        ctx.fill();
+        // Wings
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-4, 8);
+        ctx.lineTo(4, 8);
+        ctx.fill();
+
+        // Label
+        ctx.fillStyle = color;
+        ctx.font = '9px monospace';
+        ctx.fillText(`NAV: ${status}`, -10, 18);
+
+        ctx.restore();
     };
 
     animationRef.current = requestAnimationFrame(draw);
@@ -128,10 +225,6 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
     <div className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       
-      <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono tracking-widest pointer-events-none">
-        МОДЕЛЬ ИЗЛУЧЕНИЯ
-      </div>
-
       <button 
         onClick={() => setShowLegend(!showLegend)}
         className="absolute top-2 right-2 text-gray-500 hover:text-cyan-400 transition-colors z-20"
@@ -142,19 +235,19 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
 
       {showLegend && (
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm p-4 text-xs text-gray-300 flex flex-col justify-center z-10">
-            <h4 className="text-cyan-400 font-bold mb-2 uppercase">Протонный дождь</h4>
+            <h4 className="text-cyan-400 font-bold mb-2 uppercase">Влияние на технику</h4>
             <ul className="space-y-2">
                 <li className="flex items-center gap-2">
-                    <Radiation size={14} className="text-green-400" />
-                    <span>Визуализация плотности потока заряженных частиц.</span>
+                    <div className="w-3 h-3 bg-cyan-400 rounded-sm"></div>
+                    <span><strong>Спутники (GPS):</strong> Уязвимы для прямых попаданий частиц (сбои памяти).</span>
                 </li>
                 <li className="flex items-center gap-2">
-                    <span className="text-yellow-400 font-bold">Интенсивность:</span>
-                    <span>Количество линий соответствует уровню S-шкалы.</span>
+                    <div className="text-green-400 font-bold text-[10px]">✈</div>
+                    <span><strong>Авиация:</strong> Защищена атмосферой. Риск только при S4/S5 на полюсах.</span>
                 </li>
                 <li className="flex items-center gap-2">
-                    <span className="text-gray-400">Безопасность:</span>
-                    <span>Показывает обстановку на орбите, не на земле.</span>
+                    <span className="text-red-500 font-bold">Красный статус:</span>
+                    <span>Высокая вероятность сбоев электроники на орбите.</span>
                 </li>
             </ul>
         </div>
