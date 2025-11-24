@@ -105,7 +105,7 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
       
       <div className="flex flex-wrap justify-between items-center mb-4 pb-2 border-b border-white/5">
         <div className="text-xs font-bold tracking-widest text-[#00bcd4] uppercase flex items-center gap-2">
-          <span>/// ОТЧЕТ СИСТЕМЫ</span>
+          <span>/// ОБЩАЯ СВОДКА</span>
           <span className="text-gray-500 hidden md:inline">|</span>
           <span className="text-gray-400 hidden md:inline">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} UTC</span>
         </div>
@@ -114,27 +114,22 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
         <div className="flex items-center gap-3 bg-black/30 px-3 py-1 rounded border border-white/10 mt-2 md:mt-0">
             <div className="flex items-center gap-2">
                 <AlertTriangle size={16} className={danger.colorClass} />
-                <span className="text-[10px] uppercase tracking-widest text-gray-400">Индекс опасности:</span>
+                <span className="text-[10px] uppercase tracking-widest text-gray-400">ГЕОМАГНИТНЫЙ ФОН:</span>
             </div>
             <div className={`font-bold ${danger.colorClass}`}>
                 {danger.label}
             </div>
             <InfoTooltip 
-                title="Индекс опасности"
+                title="Общий статус"
                 description={
                     <>
-                        <p className="mb-2">Комплексная оценка воздействия космической погоды на человека и электронику.</p>
-                        <p className="text-xs text-gray-400">Складывается из:</p>
+                        <p className="mb-2">Интегральная оценка текущей космической погоды.</p>
+                        <p className="text-xs text-gray-400 mb-2">Рассчитывается на основе усредненных данных за последние часы для исключения случайных помех.</p>
                         <ul className="list-disc list-inside space-y-1 mt-1">
-                            <li><span className="text-white">Геомагнитный шторм (Kp)</span>: Влияет на сосуды и GPS.</li>
-                            <li><span className="text-white">Солнечный ветер</span>: Давление на магнитосферу.</li>
-                            <li><span className="text-white">Вспышки (X-Ray)</span>: Радиационный фон.</li>
+                            <li><span className="text-green-400">Фоновый</span>: Обычные условия.</li>
+                            <li><span className="text-yellow-400">Умеренный</span>: Повышенная активность, безопасная для человека.</li>
+                            <li><span className="text-red-500">Высокий</span>: Пиковые значения (Бури, Вспышки).</li>
                         </ul>
-                        <div className="mt-2 pt-2 border-t border-gray-700 grid grid-cols-3 gap-1 text-center">
-                            <div className="text-green-400">Низкий</div>
-                            <div className="text-yellow-400">Средний</div>
-                            <div className="text-red-500">Высокий</div>
-                        </div>
                     </>
                 }
             />
