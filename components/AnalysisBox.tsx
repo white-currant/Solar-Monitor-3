@@ -106,13 +106,16 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
           
           i++;
           if (i > text.length) clearInterval(timer);
-        }, 25); 
+        }, 15); // Speed of typing
 
         return () => clearInterval(timer);
     }, 500);
 
     return () => clearTimeout(startDelay);
   }, [text, isSoundOn]);
+
+  // Parser to split by newlines and highlight specific keywords
+  const paragraphs = displayedText.split('\n\n');
 
   return (
     <div className={`mb-8 p-5 border-l-4 bg-[#10141e]/60 backdrop-blur-md rounded shadow-[0_0_20px_rgba(0,188,212,0.05)] border border-white/10 min-h-[140px] relative transition-colors duration-500 ${danger.colorClass.replace('text-', 'border-')}`}>
@@ -163,9 +166,25 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
         </div>
       </div>
 
-      <div className="font-mono text-base md:text-lg leading-relaxed text-cyan-50 whitespace-pre-wrap min-h-[3rem]">
-        {displayedText}
-        <span className="animate-pulse inline-block w-2 h-4 bg-[#00bcd4] ml-1 align-middle"></span>
+      <div className="font-mono text-sm md:text-base leading-relaxed text-cyan-50 min-h-[3rem]">
+        {paragraphs.map((para, i) => {
+            if (!para) return null;
+            return (
+                <div key={i} className="mb-3 last:mb-0">
+                    {/* Parse highlights for specific keywords */}
+                    {para.split(/(СТАТУС:|ПРИМЕЧАНИЕ:|ВНИМАНИЕ:)/g).map((chunk, j) => {
+                        if (['СТАТУС:', 'ПРИМЕЧАНИЕ:', 'ВНИМАНИЕ:'].includes(chunk)) {
+                            return <span key={j} className="text-[#00bcd4] font-bold mr-1">{chunk}</span>;
+                        }
+                        return <span key={j}>{chunk}</span>;
+                    })}
+                    {/* Cursor only on the last line while typing */}
+                    {i === paragraphs.length - 1 && displayedText.length < text.length && (
+                        <span className="animate-pulse inline-block w-2 h-4 bg-[#00bcd4] ml-1 align-middle"></span>
+                    )}
+                </div>
+            );
+        })}
       </div>
     </div>
   );
