@@ -80,7 +80,7 @@ const App: React.FC = () => {
   const [detectedFlares, setDetectedFlares] = useState<ExtendedFlare[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [report, setReport] = useState("Анализ текущих параметров среды...");
+  const [report, setReport] = useState("СИНХРОНИЗАЦИЯ ТЕЛЕМЕТРИИ...");
   const [dangerIndex, setDangerIndex] = useState({ score: 0, label: 'ЗАГРУЗКА...', colorClass: 'text-gray-500' });
   const [activeFlareTime, setActiveFlareTime] = useState<string | null>(null);
 
