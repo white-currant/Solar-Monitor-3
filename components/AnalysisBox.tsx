@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { InfoTooltip } from './InfoTooltip';
@@ -117,6 +118,10 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
   // Parser to split by newlines and highlight specific keywords
   const paragraphs = displayedText.split('\n\n');
 
+  // Keywords to highlight in Cyan
+  const keywords = ['СТАТУС:', 'ПРИМЕЧАНИЕ:', 'ВНИМАНИЕ:', 'ДИНАМИКА:', 'ФИЗИКА:', 'ИЗЛУЧЕНИЕ:'];
+  const regex = new RegExp(`(${keywords.join('|')})`, 'g');
+
   return (
     <div className={`mb-8 p-5 border-l-4 bg-[#10141e]/60 backdrop-blur-md rounded shadow-[0_0_20px_rgba(0,188,212,0.05)] border border-white/10 min-h-[140px] relative transition-colors duration-500 ${danger.colorClass.replace('text-', 'border-')}`}>
       
@@ -172,9 +177,9 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
             return (
                 <div key={i} className="mb-3 last:mb-0">
                     {/* Parse highlights for specific keywords */}
-                    {para.split(/(СТАТУС:|ПРИМЕЧАНИЕ:|ВНИМАНИЕ:)/g).map((chunk, j) => {
-                        if (['СТАТУС:', 'ПРИМЕЧАНИЕ:', 'ВНИМАНИЕ:'].includes(chunk)) {
-                            return <span key={j} className="text-[#00bcd4] font-bold mr-1">{chunk}</span>;
+                    {para.split(regex).map((chunk, j) => {
+                        if (keywords.includes(chunk)) {
+                            return <span key={j} className="text-[#00bcd4] font-bold mr-2 tracking-wide">{chunk}</span>;
                         }
                         return <span key={j}>{chunk}</span>;
                     })}
