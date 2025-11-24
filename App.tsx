@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
-import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation } from 'lucide-react';
+import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation, Sparkles } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
 import { InfoTooltip } from './components/InfoTooltip';
 import { SpaceSound } from './components/SpaceSound';
 import { SolarMap } from './components/SolarMap';
 import { GeomagneticMap } from './components/GeomagneticMap';
 import { SolarFlareMap } from './components/SolarFlareMap';
+import { AuroraMap } from './components/AuroraMap';
 import { ProtonGraph } from './components/ProtonGraph';
 import { SDOModal } from './components/SDOModal';
+import { InstallButton } from './components/InstallButton';
 import { fetchSolarData, getFlareClass } from './services/noaaService';
 import { KpDataPoint, WindDataPoint, FlareDataPoint, ForecastDataPoint, ProtonDataPoint } from './types';
 
@@ -213,7 +215,7 @@ const App: React.FC = () => {
     }
     parts.push(statusText);
 
-    // 2. DYNAMICS (Wind & Impact) - Updated with Source Distinction Logic
+    // 2. DYNAMICS (Wind & Impact)
     let dynText = "";
     if (avgWind >= 500) {
         // Distinguish source: CH HSS (Low Proton) vs CME (High Proton)
@@ -286,15 +288,21 @@ const App: React.FC = () => {
   const isHighWind = currentWind > 500;
   const isProtonStorm = currentProtonFlux >= 10;
 
-  // Coronal Hole Stream: High Wind + LOW Protons
-  // CME / Flare Event: High Wind + HIGH Protons (usually)
   const isCoronalHoleSource = isHighWind && !isProtonStorm;
   const isCMESource = isHighWind && isProtonStorm;
+
+  // --- AURORA TEXT ---
+  let auroraProbText = "Вероятность только в полярных широтах.";
+  let auroraLocations = "Шпицберген, Северная Земля";
+  if (currentKp >= 3) { auroraProbText = "Возможно наблюдение в высоких широтах."; auroraLocations = "Мурманск, Тромсё, Рейкьявик"; }
+  if (currentKp >= 5) { auroraProbText = "Высокая вероятность в средних широтах."; auroraLocations = "Санкт-Петербург, Хельсинки, Осло, Минск"; }
+  if (currentKp >= 7) { auroraProbText = "Экстремальная видимость. Южные регионы."; auroraLocations = "Москва, Казань, Берлин, Минск"; }
 
   return (
     <div style={starBgStyle} className="min-h-screen p-4 md:p-8 text-gray-100 selection:bg-cyan-500 selection:text-white">
       
       <SDOModal isOpen={isSDOOpen} onClose={() => setIsSDOOpen(false)} />
+      <InstallButton />
 
       <header className="max-w-2xl mx-auto mb-8 pb-4 border-b border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="text-center md:text-left">
@@ -304,7 +312,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.8</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.9</span>
           </div>
         </div>
         
@@ -817,6 +825,39 @@ const App: React.FC = () => {
                         <Line type="monotone" dataKey="flux" stroke="#00e676" strokeWidth={2} dot={false} />
                     </LineChart>
                 </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* --- CARD 6: AURORA FORECAST (BOTTOM) --- */}
+          <div className="bg-[#10141e]/90 border border-white/10 rounded-lg p-6 shadow-2xl hover:border-white/30 transition-colors duration-300 flex flex-col">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-gray-400 text-sm font-bold tracking-widest flex items-center gap-2">
+                <Sparkles size={16} /> AURORA BOREALIS (СИЯНИЯ)
+              </h3>
+              <InfoTooltip 
+                title="Auroral Oval (Овал сияний)"
+                description={
+                  <>
+                    <p>Карта вероятности наблюдения полярных сияний.</p>
+                    <p className="mt-2 text-xs text-gray-400">Овал показывает, где сейчас полярное сияние наиболее интенсивно. Чем шире кольцо и чем оно южнее, тем сильнее буря.</p>
+                  </>
+                }
+              />
+            </div>
+
+            <AuroraMap kp={currentKp} />
+
+            <div className="flex flex-col gap-2 mt-2 text-xs font-mono text-gray-400">
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                    <span>ТЕКУЩИЙ ПРОГНОЗ:</span>
+                    <span className={`font-bold ${currentKp >= 5 ? 'text-[#ff1744]' : 'text-[#00e676]'}`}>
+                        {auroraProbText}
+                    </span>
+                </div>
+                <div className="flex justify-between items-center pt-1">
+                    <span>ЗОНА ВИДИМОСТИ:</span>
+                    <span className="text-white">{auroraLocations}</span>
+                </div>
             </div>
           </div>
 
