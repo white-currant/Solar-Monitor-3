@@ -8,26 +8,30 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Solar Monitor',
+        name: 'Solar Monitor Pro',
         short_name: 'SolarMonitor',
-        description: 'Real-time Space Weather Command Center',
+        description: 'Real-time Space Weather Telemetry',
         theme_color: '#050a14',
         background_color: '#050a14',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           {
-            src: 'icon.svg',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            type: 'image/png'
           },
           {
-            src: 'icon.svg',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]
