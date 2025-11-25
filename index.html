@@ -4,23 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#050a14" />
-    
-    <!-- PWA / Mobile Web App Meta -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SolarMonitor" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
     
-    <!-- Icons -->
-    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
-    
-    <!-- GitHub Pages Base Fix -->
-    <!-- Note: The base is handled by Vite config, but this fallback helps in some static server contexts -->
+    <!-- Fix for GitHub Pages sub-directory deployment -->
     <base href="./" />
-    
     <title>SolarMonitor | Command Center</title>
-    
-    <!-- Fonts & Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
@@ -29,7 +20,6 @@
         font-family: 'Chakra Petch', sans-serif;
         background-color: #050a14;
         color: #ffffff;
-        overscroll-behavior: none;
       }
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
@@ -68,11 +58,11 @@
   <script type="importmap">
 {
   "imports": {
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
     "vite": "https://aistudiocdn.com/vite@^7.2.4",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
     "vite-plugin-pwa": "https://aistudiocdn.com/vite-plugin-pwa@^1.1.0"
