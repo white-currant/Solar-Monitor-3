@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X, Radiation } from 'lucide-react';
+import { useCanvasVisibility } from '../hooks/useCanvasVisibility';
 
 interface ProtonGraphProps {
   flux: number; // pfu >= 10MeV
@@ -8,13 +9,15 @@ interface ProtonGraphProps {
 
 export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const particlesRef = useRef<{x: number, y: number, speed: number, len: number, alpha: number}[]>([]);
   const [showLegend, setShowLegend] = useState(false);
+  const isVisible = useCanvasVisibility(containerRef);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isVisible) return;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
@@ -219,10 +222,10 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
         window.removeEventListener('resize', updateDimensions);
         cancelAnimationFrame(animationRef.current);
     };
-  }, [flux, showLegend]);
+  }, [flux, showLegend, isVisible]);
 
   return (
-    <div className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
+    <div ref={containerRef} className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       
       <button 

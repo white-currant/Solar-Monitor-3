@@ -1,6 +1,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X } from 'lucide-react';
+import { useCanvasVisibility } from '../hooks/useCanvasVisibility';
 
 interface GeomagneticMapProps {
   kp: number;
@@ -10,12 +11,14 @@ interface GeomagneticMapProps {
 
 export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 400, density = 5 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const [showLegend, setShowLegend] = useState(false);
+  const isVisible = useCanvasVisibility(containerRef);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isVisible) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -203,10 +206,10 @@ export const GeomagneticMap: React.FC<GeomagneticMapProps> = ({ kp, windSpeed = 
         window.removeEventListener('resize', updateDimensions);
         cancelAnimationFrame(animationRef.current);
     };
-  }, [kp, showLegend, windSpeed, density]);
+  }, [kp, showLegend, windSpeed, density, isVisible]);
 
   return (
-    <div className="w-full h-[260px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
+    <div ref={containerRef} className="w-full h-[260px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono tracking-widest pointer-events-none">
         МОДЕЛЬ МАГНИТОСФЕРЫ

@@ -95,25 +95,27 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
 
   useEffect(() => {
     let i = 0;
+    let timer: ReturnType<typeof setInterval> | null = null;
     setDisplayedText('');
-    
+
     const startDelay = setTimeout(() => {
-        const timer = setInterval(() => {
+        timer = setInterval(() => {
           setDisplayedText(text.substring(0, i));
-          
+
           if (i > 0 && i <= text.length && i % 2 === 0) {
             playBlip();
           }
-          
-          i++;
-          if (i > text.length) clearInterval(timer);
-        }, 15); // Speed of typing
 
-        return () => clearInterval(timer);
+          i++;
+          if (i > text.length && timer) clearInterval(timer);
+        }, 15); // Speed of typing
     }, 500);
 
-    return () => clearTimeout(startDelay);
-  }, [text, isSoundOn]);
+    return () => {
+      clearTimeout(startDelay);
+      if (timer) clearInterval(timer);
+    };
+  }, [text]);
 
   // Parser to split by newlines and highlight specific keywords
   const paragraphs = displayedText.split('\n\n');
@@ -131,7 +133,7 @@ export const AnalysisBox: React.FC<AnalysisBoxProps> = ({ text, danger }) => {
         <div className="text-xs font-bold tracking-widest text-[#00bcd4] uppercase flex items-center gap-2 shrink-0">
           <span>/// ОБЩАЯ СВОДКА</span>
           <span className="text-gray-500 hidden md:inline">|</span>
-          <span className="text-gray-400 hidden md:inline">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} UTC</span>
+          <span className="text-gray-400 hidden md:inline">{new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
         </div>
 
         {/* Controls Container */}

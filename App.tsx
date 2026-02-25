@@ -312,7 +312,7 @@ const App: React.FC = () => {
           </h1>
           <div className="flex items-center gap-3 text-gray-500 text-sm font-mono mt-1 tracking-widest">
             <span>LIVE TELEMETRY // NOAA SWPC DATA STREAM</span>
-            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.9</span>
+            <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">v2.1.0</span>
           </div>
         </div>
         
@@ -845,7 +845,7 @@ const App: React.FC = () => {
               />
             </div>
 
-            <AuroraMap kp={currentKp} />
+            <AuroraMap kp={currentKp} windSpeed={currentWind} density={currentDensity} />
 
             <div className="flex flex-col gap-2 mt-2 text-xs font-mono text-gray-400">
                 <div className="flex justify-between items-center border-b border-white/5 pb-2">
