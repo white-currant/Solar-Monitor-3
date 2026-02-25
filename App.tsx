@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
-import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, HelpCircle, CalendarDays, Radiation, Sparkles } from 'lucide-react';
+import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, CalendarDays, Radiation, Sparkles } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
 import { InfoTooltip } from './components/InfoTooltip';
 import { SpaceSound } from './components/SpaceSound';
@@ -693,7 +693,7 @@ const App: React.FC = () => {
                   <RechartsTooltip 
                      contentStyle={{ backgroundColor: '#151a25', borderColor: '#00bcd4', color: '#fff', borderRadius: '4px' }}
                      labelFormatter={(label) => formatTime(label)}
-                     formatter={(value: number, name: string, props: any) => [props.payload.class, 'Класс']}
+                     formatter={(_value: number, _name: string, props: any) => [props.payload.class, 'Класс']}
                   />
                   <YAxis 
                     scale="log" 

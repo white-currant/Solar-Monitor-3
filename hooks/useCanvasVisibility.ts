@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, RefObject } from 'react';
+import { useEffect, useState, RefObject } from 'react';
 
 /**
  * Pauses canvas requestAnimationFrame loops when the element

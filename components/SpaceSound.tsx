@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Radio, Square, Globe, Sun, Activity, Volume2, Volume1 } from 'lucide-react';
+import { Square, Globe, Sun, Activity, Volume2, Volume1 } from 'lucide-react';
 import { InfoTooltip } from './InfoTooltip';
 
 interface SpaceSoundProps {

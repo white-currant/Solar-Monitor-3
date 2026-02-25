@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { HelpCircle, X, Radiation } from 'lucide-react';
+import { HelpCircle, X } from 'lucide-react';
 import { useCanvasVisibility } from '../hooks/useCanvasVisibility';
 
 interface ProtonGraphProps {
@@ -126,7 +126,6 @@ export const ProtonGraph: React.FC<ProtonGraphProps> = ({ flux }) => {
         drawSatellite(ctx, satX, satY, satColor, satStatus);
 
         // Draw Plane (Atmosphere - Low)
-        const planeSpeed = 0.5;
         const planeX = ((time * 30) % (w + 100)) - 50; // Moving
         const planeY = h * 0.65;
         

@@ -234,7 +234,6 @@ export const AuroraMap: React.FC<AuroraMapProps> = ({ kp, windSpeed = 400, densi
         // === 4. AURORA OVAL (multi-layer, realistic colors) ===
         const MAG_POLE_LON = -72.5;
         const bandWidth = 5 + (kp * 2.5);
-        const kpStrength = Math.min(1, kp / 7);
 
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
