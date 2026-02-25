@@ -845,7 +845,7 @@ const App: React.FC = () => {
               />
             </div>
 
-            <AuroraMap kp={currentKp} />
+            <AuroraMap kp={currentKp} windSpeed={currentWind} density={currentDensity} />
 
             <div className="flex flex-col gap-2 mt-2 text-xs font-mono text-gray-400">
                 <div className="flex justify-between items-center border-b border-white/5 pb-2">
