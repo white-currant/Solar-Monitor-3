@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X } from 'lucide-react';
+import { useCanvasVisibility } from '../hooks/useCanvasVisibility';
 
 interface SolarMapProps {
   speed: number;    // km/s
@@ -9,14 +10,16 @@ interface SolarMapProps {
 
 export const SolarMap: React.FC<SolarMapProps> = ({ speed, density, kp }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const particlesRef = useRef<{x: number, y: number, vx: number, vy: number, size: number, alpha: number}[]>([]);
   const initializedRef = useRef(false);
   const [showLegend, setShowLegend] = useState(false);
+  const isVisible = useCanvasVisibility(containerRef);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isVisible) return;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
@@ -193,10 +196,10 @@ export const SolarMap: React.FC<SolarMapProps> = ({ speed, density, kp }) => {
         window.removeEventListener('resize', updateDimensions);
         cancelAnimationFrame(animationRef.current);
     };
-  }, [speed, density, kp, showLegend]);
+  }, [speed, density, kp, showLegend, isVisible]);
 
   return (
-    <div className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
+    <div ref={containerRef} className="w-full h-[160px] bg-black/40 rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       
       <div className="absolute top-2 left-2 text-[10px] text-gray-500 font-mono tracking-widest pointer-events-none">

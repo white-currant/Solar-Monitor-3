@@ -96,8 +96,8 @@ export const fetchSolarData = async () => {
     const kpRaw = await smartFetch(URLS.kp);
     const kpData: KpDataPoint[] = Array.isArray(kpRaw) ? kpRaw.slice(1).map((row: any) => ({
       time: parseUtcTime(row[0]),
-      kp: parseFloat(row[1])
-    })).slice(-8) : [];
+      kp: parseFloat(row[1]) || 0
+    })).filter(d => !isNaN(d.kp)).slice(-8) : [];
 
     // 2. Fetch Wind (NOAA 1-day)
     const windRaw = await smartFetch(URLS.wind);

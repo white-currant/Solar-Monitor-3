@@ -68,7 +68,7 @@ export const SpaceSound: React.FC<SpaceSoundProps> = ({ windSpeed, windDensity, 
   const stopAll = () => {
     if (masterGainRef.current) {
         try {
-            masterGainRef.current.gain.setTargetAtTime(0, audioCtxRef.current!.currentTime, 0.1);
+            masterGainRef.current.gain.setTargetAtTime(0, audioCtxRef.current?.currentTime ?? 0, 0.1);
         } catch(e) {}
         
         setTimeout(() => {

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { HelpCircle, X, Map, Layers, RotateCw } from 'lucide-react';
+import { useCanvasVisibility } from '../hooks/useCanvasVisibility';
 
 interface AuroraMapProps {
   kp: number;
@@ -7,8 +8,10 @@ interface AuroraMapProps {
 
 export const AuroraMap: React.FC<AuroraMapProps> = ({ kp }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const [showLegend, setShowLegend] = useState(false);
+  const isVisible = useCanvasVisibility(containerRef);
   const mapImageRef = useRef<HTMLImageElement | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
@@ -46,7 +49,7 @@ export const AuroraMap: React.FC<AuroraMapProps> = ({ kp }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !isVisible) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -273,10 +276,10 @@ export const AuroraMap: React.FC<AuroraMapProps> = ({ kp }) => {
         window.removeEventListener('resize', updateDimensions);
         cancelAnimationFrame(animationRef.current);
     };
-  }, [kp, showLegend, imageLoaded, useFallback]);
+  }, [kp, showLegend, imageLoaded, useFallback, isVisible]);
 
   return (
-    <div className="w-full h-[320px] bg-[#050a14] rounded border border-white/5 mb-4 relative overflow-hidden group">
+    <div ref={containerRef} className="w-full h-[320px] bg-[#050a14] rounded border border-white/5 mb-4 relative overflow-hidden group">
       <canvas ref={canvasRef} className="w-full h-full block" />
       
       <div className="absolute top-2 left-2 text-[10px] text-gray-300 font-bold font-mono tracking-widest pointer-events-none flex items-center gap-2 drop-shadow-md bg-black/40 px-2 py-1 rounded backdrop-blur-md border border-white/10">
