@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine } from 'recharts';
+import { LineChart, Line, YAxis, XAxis, ResponsiveContainer, BarChart, Bar, Cell, Tooltip as RechartsTooltip, CartesianGrid, ReferenceLine, ReferenceArea } from 'recharts';
 import { Activity, Wind, Zap, RefreshCw, Clock, WifiOff, CalendarDays, Radiation, Sparkles } from 'lucide-react';
 import { AnalysisBox } from './components/AnalysisBox';
 import { InfoTooltip } from './components/InfoTooltip';
@@ -713,23 +713,24 @@ const App: React.FC = () => {
                     dot={false}
                   />
                   
-                  {detectedFlares.map((flare, index) => {
+                  <ReferenceArea y1={1e-6} y2={1e-5} fill="#00e676" fillOpacity={0.07} label={{ value: 'C', position: 'insideTopLeft', fill: '#00e676', fontSize: 10, opacity: 0.5 }} />
+
+                  {detectedFlares.filter(flare => !flare.class.includes('C')).map((flare, index) => {
                       const isActive = activeFlareTime === flare.time;
                       const isSig = flare.isSignificant;
                       let strokeColor = '#6b7280';
                       if (isActive) strokeColor = '#ffffff';
                       else if (flare.class.includes('X')) strokeColor = '#ff1744';
                       else if (flare.class.includes('M')) strokeColor = '#ffca28';
-                      else if (flare.class.includes('C')) strokeColor = '#00e676';
-                      
+
                       return (
-                          <ReferenceLine 
-                            key={index} 
-                            x={flare.time} 
-                            stroke={strokeColor} 
+                          <ReferenceLine
+                            key={index}
+                            x={flare.time}
+                            stroke={strokeColor}
                             strokeWidth={isActive ? 2 : 1}
                             strokeDasharray={isSig ? "" : "2 2"}
-                            opacity={isActive ? 1 : (isSig ? 0.8 : 0.5)} 
+                            opacity={isActive ? 1 : (isSig ? 0.8 : 0.5)}
                           />
                       );
                   })}
