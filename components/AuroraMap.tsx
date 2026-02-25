@@ -8,28 +8,15 @@ interface AuroraMapProps {
   density?: number;
 }
 
-// Extended city list with geomagnetic latitudes for probability calculation
+// Key reference cities (reduced set for readability)
 const CITIES = [
-    // Russia & CIS
     { name: "Мурманск", lat: 68.9, lon: 33.0, magLat: 64.5 },
-    { name: "Архангельск", lat: 64.5, lon: 40.5, magLat: 60.8 },
     { name: "С.-Петербург", lat: 59.9, lon: 30.3, magLat: 56.1 },
     { name: "Москва", lat: 55.7, lon: 37.6, magLat: 51.5 },
     { name: "Минск", lat: 53.9, lon: 27.5, magLat: 50.2 },
-    { name: "Сыктывкар", lat: 61.6, lon: 50.8, magLat: 57.3 },
-    { name: "Норильск", lat: 69.3, lon: 88.2, magLat: 64.1 },
-    // Scandinavia
-    { name: "Тромсё", lat: 69.6, lon: 19.0, magLat: 66.6 },
     { name: "Рейкьявик", lat: 64.1, lon: -21.8, magLat: 65.0 },
-    { name: "Хельсинки", lat: 60.1, lon: 24.9, magLat: 56.8 },
-    { name: "Осло", lat: 59.9, lon: 10.7, magLat: 57.8 },
-    { name: "Стокгольм", lat: 59.3, lon: 18.0, magLat: 56.5 },
-    // North America
-    { name: "Анкоридж", lat: 61.2, lon: -149.9, magLat: 61.3 },
     { name: "Фэрбанкс", lat: 64.8, lon: -147.7, magLat: 65.0 },
     { name: "Торонто", lat: 43.6, lon: -79.3, magLat: 54.0 },
-    { name: "Эдинбург", lat: 55.9, lon: -3.2, magLat: 55.5 },
-    // Asia
     { name: "Якутск", lat: 62.0, lon: 129.7, magLat: 56.2 },
 ];
 
