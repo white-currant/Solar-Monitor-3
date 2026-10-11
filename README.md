@@ -1,20 +1,70 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Солнечный монитор
 
-# Run and deploy your AI Studio app
+Космическая погода в реальном времени: магнитные бури, солнечный ветер, вспышки на Солнце,
+протонные события и прогноз полярных сияний — с ответом на вопрос «увижу ли я сияние там, где нахожусь».
 
-This contains everything you need to run your app locally.
+**Сайт:** https://white-currant.github.io/Solar-Monitor-3/
 
-View your app in AI Studio: https://ai.studio/apps/drive/181W338UGvSRkVnO0vdSzLDRXg5IUE-eA
+Сайт можно установить на экран «Домой» на iPhone или Android — он работает как приложение.
+Веб-версия того же «Солнечного монитора», что и приложение для iPhone: те же данные, тексты и логика.
 
-## Run Locally
+## Что показывает
 
-**Prerequisites:**  Node.js
+- **Сейчас** — общий вердикт, индекс Kp (минутная оценка), шкалы NOAA R/S/G и прогноз на трое суток
+- **Индекс Kp** — сутки наблюдений и прогноз NOAA на три дня
+- **Солнечный ветер** — скорость, плотность, Bz и Bt за сутки с аппаратов в точке L1, время подлёта к Земле
+- **Рентген и вспышки** — поток GOES за сутки или трое, классы вспышек, список за неделю
+- **Протоны ≥10 МэВ** — радиационная обстановка
+- **Сообщения NOAA** — тревоги, предупреждения и прогнозы с переведёнными заголовками
+- **Солнце** — свежие снимки NASA SDO в шести каналах, активные области и вероятность вспышек
+- **Сияния** — карта OVATION с ночной стороной Земли и вероятность для выбранного города или своего места
+- **Солнечный цикл** — число пятен с 2008 года и прогноз NOAA до 2030-го
 
+Демонстрационных данных нет. Без связи сайт показывает последний сохранённый срез с отметкой времени.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Источники
+
+Все запросы идут напрямую к `services.swpc.noaa.gov` — NOAA разрешает их из браузера, прокси не нужны.
+
+| Показание | Продукт NOAA |
+|---|---|
+| Kp за три часа | `products/noaa-planetary-k-index.json` |
+| Оценка Kp раз в минуту | `json/planetary_k_index_1m.json` |
+| Прогноз Kp на трое суток | `products/noaa-planetary-k-index-forecast.json` |
+| Солнечный ветер (плазма и поле) | `json/rtsw/rtsw_wind_1m.json`, `json/rtsw/rtsw_mag_1m.json` |
+| Рентген GOES | `json/goes/primary/xrays-1-day.json`, `xrays-3-day.json` |
+| Протоны ≥10 МэВ | `json/goes/primary/integral-protons-1-day.json` |
+| Вспышки | `json/goes/primary/xray-flares-7-day.json` |
+| Шкалы R, S, G | `products/noaa-scales.json` |
+| Сообщения | `products/alerts.json` |
+| Активные области | `json/solar_regions.json` |
+| Прогноз сияний OVATION | `json/ovation_aurora_latest.json` |
+| Солнечный цикл | `json/solar-cycle/observed-solar-cycle-indices.json`, `predicted-solar-cycle.json` |
+
+Снимки Солнца — [NASA SDO](https://sdo.gsfc.nasa.gov/). Карта Земли — NASA Blue Marble, общественное достояние.
+
+Раздел NOAA `products/solar-wind/`, которым пользовалась прошлая версия, закрыт (отвечает 404);
+его заменили ряды реального времени `json/rtsw/` — NOAA сама помечает в них активный аппарат.
+
+## Разработка
+
+```bash
+npm install
+npm run dev      # http://localhost:5173/Solar-Monitor-3/
+npm run build    # проверка типов и сборка в dist/
+```
+
+Стек: React 18, TypeScript, Vite, PWA. Графики и карта сияний нарисованы вручную на SVG и Canvas —
+без библиотек графиков.
+
+```
+src/
+  lib/model.ts   типы, шкалы NOAA, сводная оценка обстановки, форматирование
+  lib/noaa.ts    загрузка и разбор данных NOAA
+  lib/store.ts   обновление данных и кэш последнего среза
+  lib/geo.ts     геомагнитная широта, освещённость, полярная проекция, растр карты сияний
+  lib/info.ts    пояснения к показаниям
+  components/    карточки и графики
+```
+
+Публикация на GitHub Pages идёт автоматически при каждом изменении ветки `main`.
