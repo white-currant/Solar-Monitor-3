@@ -695,9 +695,9 @@ function details(d: SceneInput, c: Conditions, aurora: { place: string; probabil
         ['Скорость', col(`${Math.round(d.speed)} км/с`, d.speed >= 700 ? '#ff4d4d' : d.speed >= 500 ? '#ffb21a' : '#2ee88a')],
         ['Плотность', `${fmt1(d.density)} частиц/см³`],
         ['Давление', `${fmt1(p)} нПа`],
-        ['Поле Bz', col(`${fmt1(d.bz)} нТл`, d.bz <= -5 ? '#ff6a3d' : d.bz >= 5 ? '#5ac8ff' : '#fff')],
+        ['Поле Bz', col(`${fmt1(d.bz)} нТл · ${d.bz <= -5 ? 'защита открыта' : d.bz < 0 ? 'слегка на юг' : 'защита закрыта'}`, d.bz <= -5 ? '#ff6a3d' : d.bz >= 5 ? '#5ac8ff' : '#fff')],
       ],
-      extra: <p className="panel-note">На сцене скорость частиц — это реальная скорость ветра, их густота — плотность. Цвет показывает Bz: оранжево-красный — южное поле, открывающее магнитосферу, голубой — северное.</p>,
+      extra: <p className="panel-note">На сцене скорость частиц — это реальная скорость ветра, их густота — плотность. Цвет — направление их магнитного поля (Bz): оранжево-красный — на юг, защита Земли открыта; голубой — на север, закрыта; жёлтый — нейтрально.</p>,
       jump: { id: 'wind-card', label: 'График ветра' },
     },
     l1: {
@@ -736,7 +736,7 @@ function details(d: SceneInput, c: Conditions, aurora: { place: string; probabil
         ['Граница овала', `${c.geomagnetic.boundary}° геомагн. широты`],
         ...(aurora ? ([[`Сияние: ${aurora.place}`, col(`${aurora.probability} %`, aurora.probability >= 12 ? scaleColor(2) : 'rgba(255,255,255,.7)')]] as [string, ReactNode][]) : []),
       ],
-      extra: <p className="panel-note">Овалы на полюсах разгораются вместе с Kp. При южном Bz часть частиц прорывается к полюсам — это видно как оранжевые точки, летящие к Земле.</p>,
+      extra: <p className="panel-note">Овалы на полюсах разгораются вместе с Kp. Когда поле ветра повёрнуто на юг, часть частиц прорывается к полюсам — это оранжевые точки, летящие к Земле.</p>,
       jump: { id: 'aurora', label: 'Карта сияний' },
     },
     goes: {

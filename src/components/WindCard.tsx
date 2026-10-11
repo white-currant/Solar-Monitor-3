@@ -24,11 +24,11 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
   const fast = cur.speed >= 500
   const south = cur.bz <= -5
   const verdict = fast && south
-    ? { text: 'Быстрый ветер и южное поле — условия для магнитной бури.', color: '#ff4d4d' }
+    ? { text: 'Ветер быстрый, и его магнитное поле открыло защиту Земли — условия для магнитной бури.', color: '#ff4d4d' }
     : fast
-      ? { text: 'Ветер быстрый, но поле не южное — магнитосфера держит удар.', color: '#ffb21a' }
+      ? { text: 'Ветер быстрый, но его магнитное поле сейчас не открывает защиту Земли — ветер её обтекает, бури нет.', color: '#ffb21a' }
       : south
-        ? { text: 'Поле южное, но ветер спокойный — возможны слабые возмущения.', color: '#ffb21a' }
+        ? { text: 'Магнитное поле ветра открывает защиту Земли, но сам ветер спокойный — возможны слабые возмущения.', color: '#ffb21a' }
         : { text: 'Ветер спокойный — угрозы для магнитного поля нет.', color: '#2ee88a' }
   const lead = leadTimeFromL1(cur.speed)
   const travel = travelTimeFromSun(cur.speed)
@@ -52,7 +52,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
       yMin: -Math.max(15, Math.ceil(Math.max(...wind.map((p) => p.bt)) / 5) * 5),
       yMax: Math.max(15, Math.ceil(Math.max(...wind.map((p) => p.bt)) / 5) * 5),
       ticks: [-20, -10, 0, 10, 20].map((v) => ({ v, label: String(v) })),
-      bands: [{ from: -100, to: -5, color: 'rgba(255,77,154,0.09)', label: 'южное поле' }],
+      bands: [{ from: -100, to: -5, color: 'rgba(255,77,154,0.09)', label: 'защита открыта' }],
       zero: 0,
       format: (v: number) => `Bz ${fmt1(v)} нТл`,
     },
@@ -71,7 +71,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
     <Card
       id="wind-card"
       title="Солнечный ветер"
-      subtitle="Поток частиц от Солнца — замер за 1,5 млн км до Земли. Быстрый ветер с южным полем Bz раскачивает магнитные бури."
+      subtitle="Поток частиц от Солнца — замер за 1,5 млн км до Земли. Буря начинается, когда ветер быстрый, а его магнитное поле (Bz) повёрнуто на юг — против земного."
       verdict={verdict}
       icon={Icons.wind}
       info="wind"
@@ -80,7 +80,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
       <div className="stats">
         <Stat label="Скорость" value={Math.round(cur.speed)} unit="км/с" color={speedColor(cur.speed)} />
         <Stat label="Плотность" value={fmt1(cur.density)} unit="см⁻³" />
-        <Stat label="Bz" value={fmt1(cur.bz)} unit="нТл" color={bzColor(cur.bz)} sub={cur.bz < 0 ? 'южное' : 'северное'} />
+        <Stat label="Поле Bz" value={fmt1(cur.bz)} unit="нТл" color={bzColor(cur.bz)} sub={cur.bz <= -5 ? 'на юг — защита открыта' : cur.bz < 0 ? 'слегка на юг' : 'на север — защита закрыта'} />
         <Stat label="Bt" value={fmt1(cur.bt)} unit="нТл" />
       </div>
 
@@ -104,7 +104,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
         zero={chart.zero}
         format={chart.format}
       />
-      {mode === 'bz' && <p className="footnote">Сплошная — Bz, пунктир — полная сила поля Bt. Ниже нуля поле открывает магнитосферу.</p>}
+      {mode === 'bz' && <p className="footnote">Сплошная — Bz, пунктир — полная сила поля Bt. Ниже нуля поле ветра повёрнуто на юг и открывает защиту Земли; чем глубже и дольше, тем сильнее буря.</p>}
 
       <div className="facts">
         {lead && (

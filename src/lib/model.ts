@@ -317,9 +317,9 @@ function makeSummary(
     else parts.push(`Ветер спокойный, ${speed} км/с.`)
 
     if (wind.bz <= -5)
-      parts.push(`Поле южное, Bz ${fmt1(wind.bz)} нТл — магнитосфера открыта для энергии ветра.`)
+      parts.push(`Магнитное поле ветра повёрнуто на юг (Bz ${fmt1(wind.bz)} нТл) — защита Земли открыта для его энергии.`)
     else if (wind.bz >= 5)
-      parts.push(`Bz северное, ${fmt1(wind.bz)} нТл — связь с магнитосферой слабая.`)
+      parts.push(`Магнитное поле ветра повёрнуто на север (Bz ${fmt1(wind.bz)} нТл) — защита Земли закрыта, ветер её обтекает.`)
   }
 
   const recent = s.flares.filter((f) => f.begin > now - 24 * HOUR)
