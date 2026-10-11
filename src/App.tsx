@@ -100,8 +100,8 @@ export default function App() {
         <h2 className="section-title">Подробно</h2>
         <div className="cards">
           <KpCard forecast={snapshot.kpForecast} estimated={snapshot.kpEstimated} current={c.kp} now={now} />
-          <WindCard wind={snapshot.wind} now={now} />
           <FlareCard xray={snapshot.xray} flares={snapshot.flares} now={now} />
+          <WindCard wind={snapshot.wind} now={now} />
           <ScalesCard scales={snapshot.scales} c={c} />
           <ProtonCard protons={snapshot.protons} now={now} />
           <AlertsCard alerts={snapshot.alerts} now={now} />
