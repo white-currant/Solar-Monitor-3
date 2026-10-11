@@ -20,7 +20,7 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
   const peak = forecast.filter((p) => p.origin === 'predicted' && p.t > now).reduce<KpForecastPoint | null>((m, p) => (!m || p.kp > m.kp ? p : m), null)
 
   return (
-    <Card title="Индекс Kp" icon={Icons.calendar} info="kp">
+    <Card id="kp-card" title="Индекс Kp" icon={Icons.calendar} info="kp">
       {bars.length ? (
         <>
           <BarChart
@@ -28,7 +28,7 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
             max={9}
             ticks={[0, 3, 5, 7, 9]}
             threshold={{ v: 5, label: 'буря G1' }}
-            height={170}
+            height={200}
             format={(b) => (
               <>
                 <b style={{ color: b.color }}>Kp {b.v.toFixed(2).replace('.', ',')}</b>
@@ -61,14 +61,14 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
         <div className="subchart">
           <div className="subchart-title">Минутная оценка за 6 часов</div>
           <TimeChart
-            series={[{ points: estimated, color: '#9fd8ff', area: true }]}
+            series={[{ points: estimated, color: '#4fd2ff', area: true }]}
             start={now - 6 * H}
             end={now}
             yMin={0}
             yMax={Math.max(5, Math.ceil(Math.max(...estimated.map((p) => p.v)) + 0.5))}
             yTicks={[0, 2, 4, 6, 8].map((v) => ({ v, label: String(v) }))}
             bands={[{ from: 5, to: 9, color: 'rgba(255,199,82,0.08)', label: 'буря' }]}
-            height={120}
+            height={140}
             format={(v) => `Kp ${v.toFixed(2).replace('.', ',')}`}
           />
         </div>

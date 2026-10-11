@@ -58,10 +58,10 @@ interface TimeChartProps {
   gap?: number
 }
 
-const PAD = { top: 10, right: 8, bottom: 22, left: 40 }
+const PAD = { top: 12, right: 8, bottom: 26, left: 48 }
 
 export function TimeChart(props: TimeChartProps) {
-  const { series, start, end, yMin, yMax, log, yTicks, bands = [], zero, markers = [], height = 170, format, gap = 20 * 60_000 } = props
+  const { series, start, end, yMin, yMax, log, yTicks, bands = [], zero, markers = [], height = 200, format, gap = 20 * 60_000 } = props
   const [ref, width] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
 
@@ -157,7 +157,7 @@ export function TimeChart(props: TimeChartProps) {
           <defs>
             {series.map((s, i) => (
               <linearGradient key={i} id={`${gradId}-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.32" />
+                <stop offset="0%" stopColor={s.color} stopOpacity="0.45" />
                 <stop offset="100%" stopColor={s.color} stopOpacity="0" />
               </linearGradient>
             ))}
@@ -270,7 +270,7 @@ export interface Bar {
 export function BarChart({
   bars,
   max,
-  height = 150,
+  height = 180,
   ticks,
   threshold,
   format,
@@ -286,8 +286,8 @@ export function BarChart({
 }) {
   const [ref, width] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
-  const left = 22
-  const bottom = 22
+  const left = 26
+  const bottom = 26
   const w = Math.max(0, width - left - 4)
   const h = height - 10 - bottom
   const step = bars.length ? w / bars.length : 0

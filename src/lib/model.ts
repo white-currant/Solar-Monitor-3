@@ -20,6 +20,7 @@ export interface WindPoint {
   temperature: number // К
   bt: number // нТл
   bz: number // нТл, GSM
+  source?: string // аппарат в L1: SOLAR1 (SWFO-L1), ACE или IMAP
 }
 
 export interface FlareEvent {
@@ -350,24 +351,24 @@ export function travelTimeFromSun(speed: number): number | null {
 // ─── Цвета ──────────────────────────────────────────────────────────────
 
 export const FLARE_COLOR: Record<FlareLetter, string> = {
-  A: '#8c8c8c',
-  B: '#73b8e6',
-  C: '#73d999',
-  M: '#ffbf4d',
-  X: '#ff6666',
+  A: '#9aa6bf',
+  B: '#4fb6ff',
+  C: '#2ee88a',
+  M: '#ffb21a',
+  X: '#ff4d4d',
 }
 
 export function kpColor(kp: number): string {
-  if (kp < 4) return '#73d999'
-  if (kp < 5) return '#d9e073'
-  if (kp < 6) return '#ffc752'
-  if (kp < 7) return '#ff944d'
-  if (kp < 8) return '#ff6b61'
-  return '#f24d8c'
+  if (kp < 4) return '#2ee88a'
+  if (kp < 5) return '#d4f03a'
+  if (kp < 6) return '#ffc21a'
+  if (kp < 7) return '#ff8a1f'
+  if (kp < 8) return '#ff4d4d'
+  return '#ff2e8a'
 }
 
 export function scaleColor(value: number): string {
-  return ['#73d999', '#e6e073', '#ffc752', '#ff8c4d', '#ff6661', '#f24d8c'][Math.min(5, Math.max(0, value))]
+  return ['#2ee88a', '#e2ef3a', '#ffc21a', '#ff8a1f', '#ff4d4d', '#ff2e8a'][Math.min(5, Math.max(0, value))]
 }
 
 // ─── Форматирование ─────────────────────────────────────────────────────

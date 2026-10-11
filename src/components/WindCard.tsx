@@ -7,15 +7,15 @@ import { Card, Empty, Icons, Segmented, Stat } from './Card'
 type Mode = 'speed' | 'bz' | 'density'
 const H = 3_600_000
 
-const speedColor = (v: number) => (v >= 700 ? '#ff6b61' : v >= 500 ? '#ffc752' : '#73d999')
-const bzColor = (v: number) => (v <= -10 ? '#ff6b61' : v <= -5 ? '#ffc752' : v >= 5 ? '#73b8e6' : '#e8eefc')
+const speedColor = (v: number) => (v >= 700 ? '#ff4d4d' : v >= 500 ? '#ffb21a' : '#2ee88a')
+const bzColor = (v: number) => (v <= -10 ? '#ff4d4d' : v <= -5 ? '#ff8a1f' : v >= 5 ? '#4fb6ff' : '#f2f6ff')
 
 export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
   const [mode, setMode] = useState<Mode>('speed')
   const cur = last(wind)
   if (!cur) {
     return (
-      <Card title="Солнечный ветер" icon={Icons.wind} info="wind">
+      <Card id="wind-card" title="Солнечный ветер" icon={Icons.wind} info="wind">
         <Empty text="Данные спутников в точке L1 загружаются" />
       </Card>
     )
@@ -27,7 +27,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
 
   const chart = {
     speed: {
-      series: [{ points: wind.map((p) => ({ t: p.t, v: p.speed })), color: '#ffc752', area: true }],
+      series: [{ points: wind.map((p) => ({ t: p.t, v: p.speed })), color: '#ffb21a', area: true }],
       yMin: 250,
       yMax: Math.max(700, Math.ceil(Math.max(...wind.map((p) => p.speed)) / 100) * 100 + 50),
       ticks: [300, 400, 500, 600, 700, 800, 900].map((v) => ({ v, label: String(v) })),
@@ -37,7 +37,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
     },
     bz: {
       series: [
-        { points: wind.map((p) => ({ t: p.t, v: p.bz })), color: '#ff8c73', width: 1.8 },
+        { points: wind.map((p) => ({ t: p.t, v: p.bz })), color: '#ff6a3d', width: 2.2 },
         { points: wind.map((p) => ({ t: p.t, v: p.bt })), color: 'rgba(232,238,252,0.45)', width: 1.2, dashed: true },
       ],
       yMin: -Math.max(15, Math.ceil(Math.max(...wind.map((p) => p.bt)) / 5) * 5),
@@ -48,7 +48,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
       format: (v: number) => `Bz ${fmt1(v)} нТл`,
     },
     density: {
-      series: [{ points: wind.map((p) => ({ t: p.t, v: p.density })), color: '#8cc7ff', area: true }],
+      series: [{ points: wind.map((p) => ({ t: p.t, v: p.density })), color: '#4fb6ff', area: true }],
       yMin: 0,
       yMax: Math.max(10, Math.ceil(Math.max(...wind.map((p) => p.density)) / 5) * 5),
       ticks: [0, 5, 10, 20, 30, 40].map((v) => ({ v, label: String(v) })),
@@ -59,7 +59,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
   }[mode]
 
   return (
-    <Card title="Солнечный ветер" icon={Icons.wind} info="wind" aside={<span className="stamp">{age(cur.t)}</span>}>
+    <Card id="wind-card" title="Солнечный ветер" icon={Icons.wind} info="wind" aside={<span className="stamp">{age(cur.t)}</span>}>
       <div className="stats">
         <Stat label="Скорость" value={Math.round(cur.speed)} unit="км/с" color={speedColor(cur.speed)} />
         <Stat label="Плотность" value={fmt1(cur.density)} unit="см⁻³" />

@@ -102,7 +102,7 @@ export async function loadKpForecast(): Promise<KpForecastPoint[]> {
 // ─── Солнечный ветер ────────────────────────────────────────────────────
 
 /**
- * Поминутные данные реального времени от ACE, DSCOVR и IMAP. NOAA помечает
+ * Поминутные данные реального времени от SOLAR-1 (SWFO-L1), ACE и IMAP. NOAA помечает
  * «активный» аппарат — именно его ряд идёт в оперативные прогнозы.
  * Усредняем по 5 минут: суточный график не теряет формы, а точек в 5 раз меньше.
  */
@@ -112,12 +112,12 @@ export async function loadWind(): Promise<WindPoint[]> {
     getJSON<Row[]>(ENDPOINTS.windMag),
   ])
   const bucket = 5 * 60_000
-  type Acc = { n: number; speed: number; density: number; temp: number; m: number; bt: number; bz: number }
+  type Acc = { n: number; speed: number; density: number; temp: number; m: number; bt: number; bz: number; src: string }
   const acc = new Map<number, Acc>()
   const slot = (t: number) => {
     const k = Math.floor(t / bucket) * bucket
     let a = acc.get(k)
-    if (!a) acc.set(k, (a = { n: 0, speed: 0, density: 0, temp: 0, m: 0, bt: 0, bz: 0 }))
+    if (!a) acc.set(k, (a = { n: 0, speed: 0, density: 0, temp: 0, m: 0, bt: 0, bz: 0, src: '' }))
     return a
   }
   for (const r of plasma) {
@@ -127,6 +127,7 @@ export async function loadWind(): Promise<WindPoint[]> {
     if (!ok(t) || !ok(speed)) continue
     const a = slot(t)
     a.n++
+    a.src = String(r.source ?? '')
     a.speed += speed
     a.density += ok(num(r.proton_density)) ? num(r.proton_density) : 0
     a.temp += ok(num(r.proton_temperature)) ? num(r.proton_temperature) : 0
@@ -152,6 +153,7 @@ export async function loadWind(): Promise<WindPoint[]> {
       temperature: a.temp / a.n,
       bt: a.bt / a.m,
       bz: a.bz / a.m,
+      source: a.src || undefined,
     }))
 }
 

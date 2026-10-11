@@ -192,3 +192,47 @@ export const PLACES: Place[] = [
   { name: 'Тромсё', lat: 69.65, lon: 18.96 },
   { name: 'Рейкьявик', lat: 64.15, lon: -21.94 },
 ]
+
+/**
+ * Земля «сбоку», как её видно со стороны: Солнце слева. Ортографическая проекция
+ * по карте Blue Marble, дневная сторона освещена, ночная затемнена.
+ */
+export function renderGlobe(texture: Texture, size: number, now: number): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')!
+  const image = ctx.createImageData(size, size)
+  const px = image.data
+  const { data: tex, width: tw, height: th } = texture
+  const sub = subsolarPoint(now)
+  const tilt = (sub.lat * Math.PI) / 180
+  const c = size / 2
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = (x - c + 0.5) / c
+      const v = -(y - c + 0.5) / c
+      const rr = u * u + v * v
+      if (rr > 1) continue
+      const w = Math.sqrt(1 - rr)
+      // Наклон оси к Солнцу — по склонению: зимой северный полюс отвёрнут от Солнца.
+      const vy = v * Math.cos(tilt) + u * Math.sin(tilt)
+      const vu = u * Math.cos(tilt) - v * Math.sin(tilt)
+      const lat = Math.asin(Math.max(-1, Math.min(1, vy))) / RAD
+      let lon = sub.lon + Math.atan2(w, -vu) / RAD
+      lon = ((lon + 540) % 360) - 180
+      const sx = Math.min(tw - 1, Math.floor(((lon + 180) / 360) * tw))
+      const sy = Math.min(th - 1, Math.floor(((90 - lat) / 180) * th))
+      const so = (sy * tw + sx) * 4
+      const light = Math.max(0, Math.min(1, -u * 1.15 + 0.12))
+      const k = 0.1 + light * 1.0
+      const o = (y * size + x) * 4
+      const edge = Math.min(1, (1 - Math.sqrt(rr)) * size * 0.5)
+      px[o] = tex[so] * k + 6
+      px[o + 1] = tex[so + 1] * k + 10
+      px[o + 2] = tex[so + 2] * k + 24
+      px[o + 3] = 255 * edge
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}

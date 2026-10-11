@@ -5,10 +5,10 @@ import { useEffect, useRef } from 'react'
 import type { ConditionLevel } from '../lib/model'
 
 export const PALETTE: Record<ConditionLevel, { top: string; bottom: string; accent: string; glow: string }> = {
-  calm: { top: '#050a1c', bottom: '#0d1c3d', accent: '#6bcbf0', glow: '#4db3ff' },
-  active: { top: '#080a1a', bottom: '#2b2138', accent: '#8cdbad', glow: '#66d9a6' },
-  storm: { top: '#0d0817', bottom: '#471a33', accent: '#ffc259', glow: '#ff8c73' },
-  severe: { top: '#14050d', bottom: '#5c0f21', accent: '#ff7373', glow: '#ff4d59' },
+  calm: { top: '#040a1f', bottom: '#0b2150', accent: '#4fd2ff', glow: '#2f8fff' },
+  active: { top: '#060b1c', bottom: '#14324a', accent: '#3dffa8', glow: '#2ee88a' },
+  storm: { top: '#0d0718', bottom: '#521a3f', accent: '#ffbb1f', glow: '#ff7a3d' },
+  severe: { top: '#16040e', bottom: '#6e0d27', accent: '#ff4d5e', glow: '#ff2e55' },
 }
 
 function rng(seed: number) {

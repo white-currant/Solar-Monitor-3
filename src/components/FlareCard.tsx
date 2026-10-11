@@ -37,6 +37,7 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
 
   return (
     <Card
+      id="flare-card"
       title="Рентген и вспышки"
       icon={Icons.flare}
       info="flares"
@@ -65,7 +66,7 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
             </div>
           </div>
           <TimeChart
-            series={[{ points: series, color: '#ffd166', area: true, width: 1.5 }]}
+            series={[{ points: series, color: '#ffcf33', area: true, width: 1.8 }]}
             start={start}
             end={now}
             yMin={1e-8}

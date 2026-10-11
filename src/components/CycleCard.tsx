@@ -36,9 +36,9 @@ export function CycleCard({ data }: { data: { observed: CyclePoint[]; predicted:
       </div>
       <TimeChart
         series={[
-          { points: observed.map((p) => ({ t: p.t, v: p.ssn })), color: 'rgba(255,199,82,0.45)', width: 1 },
-          { points: smoothed, color: '#ffc752', width: 2.4 },
-          { points: data.predicted.map((p) => ({ t: p.t, v: p.ssn })), color: '#9fd8ff', dashed: true, width: 1.6 },
+          { points: observed.map((p) => ({ t: p.t, v: p.ssn })), color: 'rgba(255,187,31,0.5)', width: 1.1 },
+          { points: smoothed, color: '#ffbb1f', width: 2.8 },
+          { points: data.predicted.map((p) => ({ t: p.t, v: p.ssn })), color: '#4fd2ff', dashed: true, width: 1.6 },
           { points: data.predicted.map((p) => ({ t: p.t, v: p.high })), color: 'rgba(159,216,255,0.3)', width: 1 },
           { points: data.predicted.map((p) => ({ t: p.t, v: p.low })), color: 'rgba(159,216,255,0.3)', width: 1 },
         ]}
@@ -48,7 +48,7 @@ export function CycleCard({ data }: { data: { observed: CyclePoint[]; predicted:
         yMax={Math.ceil(max / 50) * 50}
         yTicks={[0, 50, 100, 150, 200, 250].map((v) => ({ v, label: String(v) }))}
         markers={[{ t: Date.UTC(2019, 11, 1), color: 'rgba(255,255,255,.5)', label: 'начало 25-го' }]}
-        height={180}
+        height={210}
         gap={62 * 86_400_000}
         format={(v) => `${Math.round(v)} пятен`}
         longTime

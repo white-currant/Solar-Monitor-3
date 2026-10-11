@@ -12,6 +12,9 @@ import { SunCard } from './components/SunCard'
 import { AuroraCard } from './components/AuroraCard'
 import { AlertsCard } from './components/AlertsCard'
 import { CycleCard } from './components/CycleCard'
+import { SpaceScene, sceneInput } from './components/SpaceScene'
+import { loadPlace } from './components/AuroraCard'
+import { auroraProbability } from './lib/model'
 
 const SECTIONS = [
   { id: 'now', label: 'Сейчас' },
@@ -32,10 +35,15 @@ export default function App() {
   useEffect(() => setNow(Date.now()), [snapshot.capturedAt])
 
   const c = useMemo(() => conditions(snapshot, now), [snapshot, now])
+  const scene = useMemo(() => sceneInput(snapshot, c, now), [snapshot, c, now])
+  const place = loadPlace()
+  const auroraHere = aurora ? { place: place.name, probability: auroraProbability(aurora, place.lat, place.lon) } : null
+  const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   const offline = failed.size >= 4 && !loading
 
   useEffect(() => {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', PALETTE[c.level].top)
+    document.documentElement.style.setProperty('--accent', PALETTE[c.level].accent)
     document.title = c.kp === null ? 'Солнечный монитор' : `Kp ${c.kp.toFixed(1).replace('.', ',')} · ${c.headline} — Солнечный монитор`
   }, [c.level, c.kp, c.headline])
 
@@ -63,6 +71,7 @@ export default function App() {
 
       <main className="wrap">
         <div id="now" className="anchor" />
+        <SpaceScene data={scene} c={c} aurora={auroraHere} onJump={jump} />
         <Hero c={c} capturedAt={snapshot.capturedAt} loading={loading} offline={offline} onRefresh={refresh} />
 
         <div className="cards">

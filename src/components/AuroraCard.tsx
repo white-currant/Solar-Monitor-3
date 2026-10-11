@@ -6,7 +6,7 @@ import { Card, Empty, Icons, Segmented } from './Card'
 
 const PLACE_KEY = 'solar-monitor:place'
 
-function loadPlace(): Place {
+export function loadPlace(): Place {
   try {
     const saved = JSON.parse(localStorage.getItem(PLACE_KEY) ?? 'null')
     if (saved && typeof saved.lat === 'number') return saved

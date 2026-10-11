@@ -10,7 +10,7 @@ export function ProtonCard({ protons, now }: { protons: Point[]; now: number }) 
   const cur = last(protons)
   const s = cur ? radiationScale(cur.v) : 0
   return (
-    <Card title="Протоны ≥10 МэВ" icon={Icons.proton} info="protons">
+    <Card id="proton-card" title="Протоны ≥10 МэВ" icon={Icons.proton} info="protons">
       {cur ? (
         <>
           <div className="flare-now">
@@ -23,7 +23,7 @@ export function ProtonCard({ protons, now }: { protons: Point[]; now: number }) 
             </div>
           </div>
           <TimeChart
-            series={[{ points: protons, color: '#c9a7ff', area: true, width: 1.5 }]}
+            series={[{ points: protons, color: '#b98cff', area: true, width: 1.8 }]}
             start={now - 24 * H}
             end={now}
             yMin={0.01}
@@ -31,7 +31,7 @@ export function ProtonCard({ protons, now }: { protons: Point[]; now: number }) 
             log
             yTicks={[0.01, 1, 10, 100, 1e4].map((v) => ({ v, label: v >= 1 ? v.toLocaleString('ru-RU') : '0,01' }))}
             bands={[{ from: 10, to: 1e6, color: 'rgba(255,199,82,0.07)', label: 'протонное событие' }]}
-            height={140}
+            height={170}
             format={(v) => `${fmt(v)} pfu`}
           />
         </>
