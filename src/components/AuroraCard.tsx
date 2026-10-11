@@ -16,9 +16,9 @@ export function loadPlace(): Place {
   return PLACES[0]
 }
 
-type Outcome = { title: string; color: string; advice: (d: number) => string }
+export type Outcome = { title: string; color: string; advice: (d: number) => string }
 
-function outcome(probability: number, distance: number): Outcome {
+export function outcome(probability: number, distance: number): Outcome {
   if (probability >= 35 || distance >= 4)
     return {
       title: 'Высокая вероятность',
@@ -106,6 +106,8 @@ export function AuroraCard({ grid, c }: { grid: AuroraGrid | null; c: Conditions
     } catch {
       /* без сохранения */
     }
+    // Сообщить остальной странице (блок «Главное», сцена), что место сменилось.
+    window.dispatchEvent(new Event('solar-place'))
   }
 
   const locate = () => {
@@ -134,7 +136,13 @@ export function AuroraCard({ grid, c }: { grid: AuroraGrid | null; c: Conditions
   const elevation = solarElevation(place.lat, place.lon, subsolarPoint(Date.now()))
 
   return (
-    <Card title="Полярные сияния" icon={Icons.aurora} info="aurora">
+    <Card
+      id="aurora-card"
+      title="Полярные сияния"
+      subtitle="Шанс увидеть северное сияние в ближайший час — для выбранного города или вашего места."
+      icon={Icons.aurora}
+      info="aurora"
+    >
       <div className="place-row">
         <select
           value={PLACES.some((p) => p.name === place.name) ? place.name : '__mine'}

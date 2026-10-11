@@ -26,8 +26,22 @@ const prob = (v: number | null) => (v === null ? '—' : `${v} %`)
 
 export function ScalesCard({ scales, c }: { scales: NOAAScales | null; c: Conditions }) {
   const forecast: ScalesDay[] = scales?.forecast ?? []
+  const today = forecast[0]
+  const verdict = today && today.rMinor !== null
+    ? {
+        text: `Шанс вспышки M сегодня ${today.rMinor} %, сильной X — ${today.rMajor ?? 0} %. Буря по суткам — в нижней строке.`,
+        color: (today.rMajor ?? 0) >= 25 ? scaleColor(3) : today.rMinor >= 50 ? scaleColor(2) : scaleColor(0),
+      }
+    : null
   return (
-    <Card title="Шкалы NOAA" icon={Icons.gauge} info="scales">
+    <Card
+      id="scales-card"
+      title="Прогноз NOAA"
+      subtitle="Официальные шкалы: R — радиосвязь, S — радиация, G — магнитные бури. 0 — спокойно, 5 — экстремально."
+      verdict={verdict}
+      icon={Icons.gauge}
+      info="scales"
+    >
       <div className="scales-row">
         <Pill letter="R" value={c.radio} meaning={`Радиосвязь. ${RADIO_MEANING[c.radio]}`} />
         <Pill letter="S" value={c.radiation} meaning={`Радиация. ${RADIATION_MEANING[c.radiation]}`} />
@@ -58,7 +72,7 @@ export function ScalesCard({ scales, c }: { scales: NOAAScales | null; c: Condit
               {forecast.map((d) => <td key={d.date}>{prob(d.sProb)}</td>)}
             </tr>
             <tr>
-              <td>Геомагнитная буря</td>
+              <td>Буря (максимум за сутки)</td>
               {forecast.map((d) => (
                 <td key={d.date} style={{ color: scaleColor(d.g ?? 0), fontWeight: d.g ? 700 : 400 }}>
                   {d.g ? `G${d.g}` : 'нет'}

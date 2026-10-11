@@ -82,9 +82,12 @@ export async function loadKp(): Promise<Point[]> {
 }
 
 export async function loadKpEstimated(): Promise<Point[]> {
+  const block = 3 * 3_600_000
   return rows(await getJSON(ENDPOINTS.kp1m))
     .map((r) => ({ t: parseTime(r.time_tag as string), v: num(r.estimated_kp) }))
-    .filter((p) => ok(p.t) && ok(p.v))
+    // В первые минуты каждого трёхчасового интервала NOAA обнуляет оценку («0Z»):
+    // это сброс расчёта, а не реальный ноль. Такие точки отбрасываем.
+    .filter((p) => ok(p.t) && ok(p.v) && !(p.v === 0 && p.t % block < 20 * 60_000))
     .sort((a, b) => a.t - b.t)
 }
 

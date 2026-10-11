@@ -196,13 +196,15 @@ const G_LEVELS: GeomagneticLevel[] = [
     meaning: 'Возможны аварии трансформаторов и длительные отказы связи. Сияния до 40°.' },
 ]
 
+// Пороги — как у NOAA: Kp записывается третями («5−» = 4,67), и буря G1 начинается уже с 5−.
+const KP_EPS = 0.01
 export function geomagneticLevel(kp: number): GeomagneticLevel {
-  if (kp < 4) return G_LEVELS[0]
-  if (kp < 5) return G_LEVELS[1]
-  if (kp < 6) return G_LEVELS[2]
-  if (kp < 7) return G_LEVELS[3]
-  if (kp < 8) return G_LEVELS[4]
-  if (kp < 9) return G_LEVELS[5]
+  if (kp < 3.67 - KP_EPS) return G_LEVELS[0]
+  if (kp < 4.67 - KP_EPS) return G_LEVELS[1]
+  if (kp < 5.67 - KP_EPS) return G_LEVELS[2]
+  if (kp < 6.67 - KP_EPS) return G_LEVELS[3]
+  if (kp < 7.67 - KP_EPS) return G_LEVELS[4]
+  if (kp < 8.67 - KP_EPS) return G_LEVELS[5]
   return G_LEVELS[6]
 }
 
@@ -359,12 +361,7 @@ export const FLARE_COLOR: Record<FlareLetter, string> = {
 }
 
 export function kpColor(kp: number): string {
-  if (kp < 4) return '#2ee88a'
-  if (kp < 5) return '#d4f03a'
-  if (kp < 6) return '#ffc21a'
-  if (kp < 7) return '#ff8a1f'
-  if (kp < 8) return '#ff4d4d'
-  return '#ff2e8a'
+  return ['#2ee88a', '#d4f03a', '#ffc21a', '#ff8a1f', '#ff4d4d', '#ff2e8a', '#ff2e8a'][geomagneticLevel(kp).rank]
 }
 
 export function scaleColor(value: number): string {

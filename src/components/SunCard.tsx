@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ActiveRegion } from '../lib/model'
-import { Card, Empty, Icons } from './Card'
+import { Card, Empty, Icons, More } from './Card'
 
 const CHANNELS = [
   { id: '0193', label: '193 Å', note: 'корона, 1,2 млн K' },
@@ -51,8 +51,20 @@ export function SunCard({ regions }: { regions: ActiveRegion[] }) {
     return () => clearInterval(id)
   }, [])
 
+  const top = regions[0]
+  const verdict = !regions.length
+    ? { text: 'Активных областей нет — вспышкам взяться неоткуда.', color: '#2ee88a' }
+    : top.probX >= 5 || top.probM >= 40
+      ? { text: `Самая опасная область — ${top.number}: шанс вспышки M ${top.probM} %, X ${top.probX} %.`, color: top.probX >= 10 ? '#ff4d4d' : '#ffb21a' }
+      : { text: `На диске ${regions.length} активных областей, сильных вспышек не ждут.`, color: '#2ee88a' }
   return (
-    <Card title="Солнце сейчас" icon={Icons.sun} info="sdo">
+    <Card
+      title="Солнце сейчас"
+      subtitle="Свежие снимки обсерватории NASA SDO. Номера на диске — активные области, где рождаются вспышки."
+      verdict={verdict}
+      icon={Icons.sun}
+      info="sdo"
+    >
       <div className="channels">
         {CHANNELS.map((c) => (
           <button key={c.id} className={c.id === channel.id ? 'on' : ''} onClick={() => { setLoaded(false); setChannel(c) }}>
@@ -107,7 +119,7 @@ function RegionsTable({ regions }: { regions: ActiveRegion[] }) {
           </tr>
         </thead>
         <tbody>
-          {regions.map((r) => {
+          {regions.slice(0, 3).map((r) => {
             const delta = (r.magClass ?? '').toLowerCase().includes('d')
             return (
               <tr key={r.number}>
@@ -126,6 +138,25 @@ function RegionsTable({ regions }: { regions: ActiveRegion[] }) {
           })}
         </tbody>
       </table>
+      {regions.length > 3 && (
+        <More label={`Ещё ${regions.length - 3}`}>
+          <table>
+            <tbody>
+              {regions.slice(3).map((r) => (
+                <tr key={r.number}>
+                  <td>{r.number}</td>
+                  <td className="mono">{r.location}</td>
+                  <td>{r.spotCount}</td>
+                  <td>{r.magClass ?? '—'}</td>
+                  <td>{r.probC}%</td>
+                  <td>{r.probM}%</td>
+                  <td>{r.probX}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </More>
+      )}
     </div>
   )
 }

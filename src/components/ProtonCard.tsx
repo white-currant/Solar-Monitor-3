@@ -10,7 +10,14 @@ export function ProtonCard({ protons, now }: { protons: Point[]; now: number }) 
   const cur = last(protons)
   const s = cur ? radiationScale(cur.v) : 0
   return (
-    <Card id="proton-card" title="Протоны ≥10 МэВ" icon={Icons.proton} info="protons">
+    <Card
+      id="proton-card"
+      title="Радиация · протоны"
+      subtitle="Быстрые частицы от сильных вспышек. Опасны для спутников и полярных авиарейсов; порог события — 10 pfu."
+      verdict={cur ? (s ? { text: `Протонное событие S${s}: ${RADIATION_MEANING[s].toLowerCase()}`, color: scaleColor(s) } : { text: 'Радиационный фон — опасности нет.', color: scaleColor(0) }) : null}
+      icon={Icons.proton}
+      info="protons"
+    >
       {cur ? (
         <>
           <div className="flare-now">

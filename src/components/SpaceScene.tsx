@@ -83,18 +83,23 @@ function hotspots(g: Geometry): Record<HotspotId, { x: number; y: number; r: num
 interface Particle {
   x: number
   y: number
+  px: number // прошлое положение — по нему рисуется хвост вдоль движения
+  py: number
   mode: 0 | 1 | 2 // 0 свободна, 1 обтекает, 2 прорвалась к полюсу
   t: number
   sx: number
   sy: number
   pole: number
+  life: number // яркость: у магнитосферы частица постепенно гаснет
+  size: number
 }
 
+// Мягкие тона: ветер — фон сцены, он не должен спорить с Солнцем и Землёй.
 function windColor(bz: number): [number, number, number] {
-  if (bz <= -10) return [255, 84, 64]
-  if (bz <= -5) return [255, 138, 46]
-  if (bz >= 5) return [90, 200, 255]
-  return [255, 214, 102]
+  if (bz <= -10) return [255, 110, 90]
+  if (bz <= -5) return [255, 160, 90]
+  if (bz >= 5) return [130, 205, 255]
+  return [255, 222, 150]
 }
 
 function auroraRGB(kp: number): string {
@@ -248,19 +253,20 @@ function drawStatic(ctx: CanvasRenderingContext2D, g: Geometry, d: SceneInput, t
     ctx.fill()
   }
 
-  // Овалы сияний: ширина и яркость — по Kp, плюс вспышки от прорвавшихся частиц.
-  const glow = Math.min(1, 0.25 + d.kp / 9 + auroraBoost)
+  // Овалы сияний — шапки у полюсов. В спокойную погоду едва заметны, с ростом Kp
+  // расширяются к экватору и разгораются; вспыхивают от прорвавшихся частиц.
+  const glow = Math.min(1, Math.max(0.08, (d.kp - 1) / 7) + auroraBoost)
   for (const pole of [-1, 1]) {
-    const ax = ex + earthR * 0.1
-    const ay = ey + pole * earthR * 0.86
-    const w = earthR * (0.55 + d.kp * 0.09)
-    const ag = ctx.createRadialGradient(ax, ay, 0, ax, ay, w * 1.8)
-    ag.addColorStop(0, `rgba(${auroraRGB(d.kp)}, ${0.9 * glow})`)
-    ag.addColorStop(0.5, `rgba(${auroraRGB(d.kp)}, ${0.35 * glow})`)
+    const ax = ex + earthR * 0.08
+    const ay = ey + pole * earthR * 0.9
+    const w = earthR * (0.32 + Math.min(d.kp, 9) * 0.07)
+    const ag = ctx.createRadialGradient(ax, ay, 0, ax, ay, w)
+    ag.addColorStop(0, `rgba(${auroraRGB(d.kp)}, ${0.85 * glow})`)
+    ag.addColorStop(0.55, `rgba(${auroraRGB(d.kp)}, ${0.3 * glow})`)
     ag.addColorStop(1, `rgba(${auroraRGB(d.kp)}, 0)`)
     ctx.fillStyle = ag
     ctx.beginPath()
-    ctx.ellipse(ax, ay, w * 1.8, w * 0.9, 0, 0, Math.PI * 2)
+    ctx.ellipse(ax, ay, w, w * 0.5, 0, 0, Math.PI * 2)
     ctx.fill()
   }
 
@@ -345,7 +351,7 @@ export function SpaceScene({
     if (!el) return
     const ro = new ResizeObserver(([e]) => {
       const W = Math.round(e.contentRect.width)
-      setSize({ W, H: W < 600 ? 270 : W < 900 ? 340 : 400 })
+      setSize({ W, H: W < 600 ? 270 : W < 900 ? 360 : 460 })
     })
     ro.observe(el)
     return () => ro.disconnect()
@@ -399,7 +405,7 @@ export function SpaceScene({
       const dy = y - geo.sunCy
       const edge = geo.sunCx + Math.sqrt(Math.max(0, geo.sunR ** 2 - dy * dy))
       const x = anywhere ? edge + Math.random() * (geo.W - edge) : edge - 2
-      return { x, y, mode: 0, t: 0, sx: 0, sy: 0, pole: 1 }
+      return { x, y, px: x - 1, py: y, mode: 0, t: 0, sx: 0, sy: 0, pole: 1, life: 1, size: 0.7 + Math.random() * 0.9 }
     }
 
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting))
@@ -425,7 +431,7 @@ export function SpaceScene({
       cam.k += (tgt.k - cam.k) * ease
 
       // Сколько частиц: плотность ветра, с поправкой на ширину экрана.
-      const want = Math.round(Math.min(380, Math.max(60, d.density * 22)) * Math.min(1.2, Math.max(0.45, geo.W / 1100)))
+      const want = Math.round(Math.min(300, Math.max(50, d.density * 16)) * Math.min(1.2, Math.max(0.45, geo.W / 1100)))
       // Первое заполнение — по всей сцене, дальше частицы рождаются у Солнца.
       while (particles.length < want) particles.push(spawn(geo, !seeded))
       seeded = true
@@ -453,6 +459,8 @@ export function SpaceScene({
           }
           continue
         }
+        p.px = p.x
+        p.py = p.y
         p.x += v * dt * (0.85 + (i % 7) * 0.05)
         const dx = p.x - geo.ex
         const dy = p.y - geo.ey
@@ -469,13 +477,15 @@ export function SpaceScene({
               p.pole = dy < 0 ? -1 : 1
               continue
             }
-            // Обтекание: частица скользит по ударной волне.
+            // Обтекание: частица плавно уходит вдоль ударной волны и гаснет.
             p.mode = 1
             const sign = dy === 0 ? (i % 2 ? 1 : -1) : Math.sign(dy)
-            p.y = geo.ey + sign * Math.sqrt(Math.max(0, rb * rb - dx * dx))
+            const target = geo.ey + sign * Math.sqrt(Math.max(0, rb * rb - dx * dx))
+            p.y += (target - p.y) * Math.min(1, dt * 9)
           }
         }
-        if (p.x > geo.W + 20 || p.y < -20 || p.y > geo.H + 20) particles[i] = spawn(geo, false)
+        if (p.mode === 1) p.life -= dt * 0.55
+        if (p.life <= 0 || p.x > geo.W + 20 || p.y < -20 || p.y > geo.H + 20) particles[i] = spawn(geo, false)
       }
 
       // Кадр.
@@ -486,27 +496,38 @@ export function SpaceScene({
 
       drawStatic(ctx, geo, d, time, auroraBoost, globe)
 
+      // Частица — мягкая точка с затухающим хвостом вдоль направления движения.
       const [cr, cg, cb] = windColor(d.bz)
-      const len = Math.min(16, 3 + d.speed / 70)
+      const tail = Math.min(14, 4 + d.speed / 80)
       ctx.lineCap = 'round'
-      ctx.lineWidth = 1.4
+      ctx.globalCompositeOperation = 'lighter'
       for (const p of particles) {
         if (p.mode === 2) {
-          ctx.strokeStyle = `rgba(255, 110, 70, .95)`
-          ctx.lineWidth = 2
+          ctx.fillStyle = 'rgba(255, 120, 90, .9)'
           ctx.beginPath()
-          ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2)
-          ctx.stroke()
-          ctx.lineWidth = 1.4
+          ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2)
+          ctx.fill()
           continue
         }
-        const a = p.mode === 1 ? 0.45 : 0.85
-        ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${a})`
+        let ux = p.x - p.px
+        let uy = p.y - p.py
+        const l = Math.hypot(ux, uy) || 1
+        ux /= l
+        uy /= l
+        const a = Math.max(0, p.life) * (p.mode === 1 ? 0.4 : 0.5)
+        const tx = p.x - ux * tail * p.size
+        const ty = p.y - uy * tail * p.size
+        const grad = ctx.createLinearGradient(tx, ty, p.x, p.y)
+        grad.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+        grad.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, ${a})`)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 1.1 * p.size + 0.4
         ctx.beginPath()
-        ctx.moveTo(p.x - len, p.y)
+        ctx.moveTo(tx, ty)
         ctx.lineTo(p.x, p.y)
         ctx.stroke()
       }
+      ctx.globalCompositeOperation = 'source-over'
 
       // Метки следуют за камерой.
       const hs = hotspots(geo)
@@ -615,7 +636,6 @@ export function SpaceScene({
                 </div>
               ))}
             </div>
-            {info[selected].extra}
             {info[selected].jump && (
               <button
                 className="panel-jump"
@@ -627,6 +647,7 @@ export function SpaceScene({
                 {info[selected].jump!.label} →
               </button>
             )}
+            {info[selected].extra}
           </aside>
         </>
       )}

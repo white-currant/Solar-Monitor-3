@@ -17,9 +17,20 @@ export function CycleCard({ data }: { data: { observed: CyclePoint[]; predicted:
   const lastObs = observed[observed.length - 1]
   const peak = smoothed.reduce((m, p) => (p.v > m.v ? p : m), { t: 0, v: 0 })
   const max = Math.max(200, ...observed.map((p) => p.ssn))
+  const lastSmooth = smoothed[smoothed.length - 1]
+  const falling = peak.v > 0 && lastSmooth && lastSmooth.t > peak.t
+  const verdict = falling
+    ? { text: `Пик 25-го цикла пройден в ${new Date(peak.t).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}. Активность медленно спадает, но сильные бури на спаде цикла ещё случаются.`, color: '#ffbb1f' }
+    : { text: 'Солнце идёт к максимуму цикла — вспышек и бурь становится больше.', color: '#ff8a1f' }
 
   return (
-    <Card title="Солнечный цикл" icon={Icons.cycle} info="cycle">
+    <Card
+      title="Солнечный цикл"
+      subtitle="Солнце живёт циклами примерно по 11 лет: на пике больше пятен, вспышек и магнитных бурь."
+      verdict={verdict}
+      icon={Icons.cycle}
+      info="cycle"
+    >
       <div className="stats">
         <div className="stat">
           <span className="stat-label">Пятен за месяц</span>

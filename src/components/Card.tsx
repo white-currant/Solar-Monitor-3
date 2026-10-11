@@ -1,8 +1,15 @@
 import { useState, type ReactNode } from 'react'
 import { INFO, type Topic } from '../lib/info'
 
+export interface Verdict {
+  text: string
+  color: string
+}
+
 export function Card({
   title,
+  subtitle,
+  verdict,
   icon,
   info,
   aside,
@@ -11,6 +18,10 @@ export function Card({
   id,
 }: {
   title: string
+  /** Короткая расшифровка: что это за данные, понятная с первого раза. */
+  subtitle?: string
+  /** Вывод одной строкой — первое, что стоит прочитать в карточке. */
+  verdict?: Verdict | null
   icon?: ReactNode
   info?: Topic
   aside?: ReactNode
@@ -22,10 +33,13 @@ export function Card({
   return (
     <section className={`card ${className}`} id={id}>
       <header className="card-head">
-        <h2>
-          {icon && <span className="card-icon">{icon}</span>}
-          {title}
-        </h2>
+        <div className="card-titles">
+          <h2>
+            {icon && <span className="card-icon">{icon}</span>}
+            {title}
+          </h2>
+          {subtitle && <p className="card-sub">{subtitle}</p>}
+        </div>
         <div className="card-aside">
           {aside}
           {info && (
@@ -47,8 +61,28 @@ export function Card({
           ))}
         </div>
       )}
+      {verdict && (
+        <div className="verdict-line" style={{ borderColor: verdict.color }}>
+          <span className="vdot" style={{ background: verdict.color, boxShadow: `0 0 10px ${verdict.color}` }} />
+          {verdict.text}
+        </div>
+      )}
       {children}
     </section>
+  )
+}
+
+/** Второстепенное — под кнопкой, чтобы карточка не вываливала всё сразу. */
+export function More({ label = 'Подробнее', children }: { label?: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="more">
+      <button className="more-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
+        {open ? 'Свернуть' : label}
+        <span className={`chev ${open ? 'up' : ''}`}>›</span>
+      </button>
+      {open && <div className="more-body">{children}</div>}
+    </div>
   )
 }
 

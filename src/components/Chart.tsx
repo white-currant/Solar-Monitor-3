@@ -24,6 +24,8 @@ export interface Series {
   area?: boolean
   dashed?: boolean
   width?: number
+  /** Цвет участка по значению — например, класс вспышки. */
+  colorAt?: (v: number) => string
 }
 
 export interface Band {
@@ -96,32 +98,42 @@ export function TimeChart(props: TimeChartProps) {
     return { ticks, mode: step >= DAY ? ('day' as const) : ('hour' as const) }
   }, [start, end, w])
 
+  // Каждый ряд режется на непрерывные куски (разрыв по `gap`), а при colorAt — ещё и по смене цвета.
   const paths = useMemo(
     () =>
       series.map((s) => {
         const pts = s.points.filter((p) => p.t >= start && p.t <= end)
         if (pts.length < 2 || w <= 0) return null
-        // Разрыв линии там, где в данных пропуск длиннее `gap`.
-        // Заливку строим по каждому непрерывному куску отдельно, иначе она «перетекает» через пропуск.
-        const segments: Point[][] = []
+        const pieces: { pts: Point[]; color: string }[] = []
         pts.forEach((p, i) => {
-          if (i === 0 || p.t - pts[i - 1].t > gap) segments.push([])
-          segments[segments.length - 1].push(p)
+          const color = s.colorAt ? s.colorAt(p.v) : s.color
+          const prev = pieces[pieces.length - 1]
+          const broken = i === 0 || p.t - pts[i - 1].t > gap
+          if (broken) pieces.push({ pts: [p], color })
+          else if (prev.color !== color) {
+            // Общая точка на стыке, чтобы линия не рвалась при смене цвета.
+            pieces.push({ pts: [pts[i - 1], p], color })
+          } else prev.pts.push(p)
         })
         const line = (seg: Point[]) => seg.map((p, i) => `${i ? 'L' : 'M'}${sx(p.t).toFixed(1)},${sy(p.v).toFixed(1)}`).join('')
-        const d = segments.map(line).join('')
         const base = PAD.top + h
-        const area = s.area
-          ? segments
-              .filter((seg) => seg.length > 1)
-              .map((seg) => `${line(seg)}L${sx(seg[seg.length - 1].t).toFixed(1)},${base}L${sx(seg[0].t).toFixed(1)},${base}Z`)
-              .join('')
-          : null
-        return { d, area, s }
+        return {
+          s,
+          pieces: pieces
+            .filter((piece) => piece.pts.length > 1)
+            .map((piece) => ({
+              color: piece.color,
+              d: line(piece.pts),
+              area: s.area
+                ? `${line(piece.pts)}L${sx(piece.pts[piece.pts.length - 1].t).toFixed(1)},${base}L${sx(piece.pts[0].t).toFixed(1)},${base}Z`
+                : null,
+            })),
+        }
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [series, start, end, w, h, y0, y1, gap],
   )
+  const colors = useMemo(() => [...new Set(paths.flatMap((p) => p?.pieces.map((x) => x.color) ?? []))], [paths])
 
   const main = series[0]?.points.filter((p) => p.t >= start && p.t <= end) ?? []
   const hovered = hover !== null && main.length ? main[hover] : null
@@ -155,10 +167,10 @@ export function TimeChart(props: TimeChartProps) {
           role="img"
         >
           <defs>
-            {series.map((s, i) => (
-              <linearGradient key={i} id={`${gradId}-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.45" />
-                <stop offset="100%" stopColor={s.color} stopOpacity="0" />
+            {colors.map((color, i) => (
+              <linearGradient key={color} id={`${gradId}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.42" />
+                <stop offset="100%" stopColor={color} stopOpacity="0.02" />
               </linearGradient>
             ))}
           </defs>
@@ -210,16 +222,21 @@ export function TimeChart(props: TimeChartProps) {
             (p, i) =>
               p && (
                 <g key={i}>
-                  {p.area && <path d={p.area} fill={`url(#${gradId}-${i})`} />}
-                  <path
-                    d={p.d}
-                    fill="none"
-                    stroke={p.s.color}
-                    strokeWidth={p.s.width ?? 1.8}
-                    strokeDasharray={p.s.dashed ? '4 4' : undefined}
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                  />
+                  {p.pieces.map(
+                    (piece, j) => piece.area && <path key={`a${j}`} d={piece.area} fill={`url(#${gradId}-${colors.indexOf(piece.color)})`} />,
+                  )}
+                  {p.pieces.map((piece, j) => (
+                    <path
+                      key={j}
+                      d={piece.d}
+                      fill="none"
+                      stroke={piece.color}
+                      strokeWidth={p.s.width ?? 2}
+                      strokeDasharray={p.s.dashed ? '4 4' : undefined}
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  ))}
                 </g>
               ),
           )}
@@ -227,7 +244,14 @@ export function TimeChart(props: TimeChartProps) {
           {hovered && (
             <g pointerEvents="none">
               <line x1={sx(hovered.t)} x2={sx(hovered.t)} y1={PAD.top} y2={PAD.top + h} className="crosshair" />
-              <circle cx={sx(hovered.t)} cy={sy(hovered.v)} r="4" fill={series[0].color} stroke="#050a1c" strokeWidth="2" />
+              <circle
+                cx={sx(hovered.t)}
+                cy={sy(hovered.v)}
+                r="4.5"
+                fill={series[0].colorAt ? series[0].colorAt(hovered.v) : series[0].color}
+                stroke="#050a1c"
+                strokeWidth="2"
+              />
             </g>
           )}
         </svg>

@@ -3,7 +3,7 @@ import type { FlareEvent, Point } from '../lib/model'
 import { FLARE_COLOR, FLARE_MEANING, flareLabel, flareLetter, formatDayTime, formatTime, last, scientific } from '../lib/model'
 import { loadXray } from '../lib/noaa'
 import { TimeChart, type Marker } from './Chart'
-import { Card, Empty, Icons, Segmented } from './Card'
+import { Card, Empty, Icons, More, Segmented } from './Card'
 
 const H = 3_600_000
 
@@ -34,11 +34,23 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
   const week = [...flares].filter((f) => f.begin > now - 7 * 24 * H).reverse()
   const strongest = week.reduce<FlareEvent | null>((m, f) => (!m || (f.peakFlux ?? 0) > (m.peakFlux ?? 0) ? f : m), null)
   const letter = cur ? flareLetter(cur.v) : 'A'
+  const day = flares.filter((f) => f.begin > now - 24 * H)
+  const dayMax = day.reduce<FlareEvent | null>((m, f) => (!m || (f.peakFlux ?? 0) > (m.peakFlux ?? 0) ? f : m), null)
+  const dayLetter = (dayMax?.maxClass[0] ?? 'A') as keyof typeof FLARE_COLOR
+  const verdict = !dayMax
+    ? { text: 'За сутки вспышек не было — Солнце спокойно.', color: FLARE_COLOR.C }
+    : dayLetter === 'X'
+      ? { text: `За сутки сильная вспышка ${dayMax.maxClass} — возможны сбои связи и выброс к Земле.`, color: FLARE_COLOR.X }
+      : dayLetter === 'M'
+        ? { text: `За сутки была средняя вспышка ${dayMax.maxClass}. Сейчас ${flareLabel(cur?.v ?? 0)} — ${letter === 'M' || letter === 'X' ? 'активно' : 'спокойнее'}.`, color: FLARE_COLOR.M }
+        : { text: `Сильных вспышек нет, максимум за сутки — ${dayMax.maxClass}.`, color: FLARE_COLOR.C }
 
   return (
     <Card
       id="flare-card"
-      title="Рентген и вспышки"
+      subtitle="Рентгеновский свет Солнца по данным спутников GOES. Всплеск на графике — вспышка. Классы по силе: B, C — слабые, M — средние, X — сильные."
+      verdict={verdict}
+      title="Вспышки на Солнце"
       icon={Icons.flare}
       info="flares"
       aside={
@@ -66,7 +78,7 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
             </div>
           </div>
           <TimeChart
-            series={[{ points: series, color: '#ffcf33', area: true, width: 1.8 }]}
+            series={[{ points: series, color: FLARE_COLOR.B, area: true, width: 2, colorAt: (v) => FLARE_COLOR[flareLetter(v)] }]}
             start={start}
             end={now}
             yMin={1e-8}
@@ -99,7 +111,7 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
           )}
         </div>
         <ul>
-          {week.slice(0, 12).map((f) => (
+          {week.slice(0, 5).map((f) => (
             <li key={f.begin}>
               <span className="flare-tag" style={{ background: `${FLARE_COLOR[f.maxClass[0] as 'C'] ?? '#888'}22`, color: FLARE_COLOR[f.maxClass[0] as 'C'] ?? '#ccc' }}>
                 {f.maxClass}
@@ -111,6 +123,20 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
             </li>
           ))}
         </ul>
+        {week.length > 5 && (
+          <More label={`Ещё ${Math.min(week.length, 25) - 5}`}>
+            <ul>
+              {week.slice(5, 25).map((f) => (
+                <li key={f.begin}>
+                  <span className="flare-tag" style={{ background: `${FLARE_COLOR[f.maxClass[0] as 'C'] ?? '#888'}22`, color: FLARE_COLOR[f.maxClass[0] as 'C'] ?? '#ccc' }}>
+                    {f.maxClass}
+                  </span>
+                  <span>{formatDayTime(f.max ?? f.begin)}</span>
+                </li>
+              ))}
+            </ul>
+          </More>
+        )}
         {week.length === 0 && <Empty text="За неделю вспышек не зарегистрировано" />}
       </div>
     </Card>

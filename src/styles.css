@@ -95,7 +95,47 @@ button { font: inherit; color: inherit; }
   min-width: 0;
 }
 .card + .card { margin-top: 0; }
-.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; min-height: 30px; }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; min-height: 30px; }
+.card-titles { min-width: 0; }
+.card-sub { margin: 4px 0 0; color: var(--text-3); font-size: 14.5px; line-height: 1.4; max-width: 56ch; }
+.verdict-line {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; padding: 11px 14px;
+  border-radius: 14px; border-left: 3px solid; background: rgba(255, 255, 255, 0.05);
+  font-size: 16.5px; font-weight: 600; line-height: 1.4;
+}
+.vdot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; }
+.more { margin-top: 12px; }
+.more-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--card-stroke);
+  background: rgba(255, 255, 255, 0.05); border-radius: 999px; padding: 7px 14px; font-size: 15px; cursor: pointer; color: var(--text-2);
+}
+.more-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.09); }
+.chev { display: inline-block; transform: rotate(90deg); transition: transform 0.2s; font-size: 17px; line-height: 1; }
+.chev.up { transform: rotate(-90deg); }
+.more-body { margin-top: 12px; }
+
+/* Подсветка карточки после перехода — понятно, куда смотреть. */
+.card[data-flash] { animation: flash 3s ease; }
+.card { scroll-margin-top: 76px; }
+@keyframes flash {
+  0%, 45% { box-shadow: 0 0 0 2px var(--accent, #4fd2ff), 0 0 44px color-mix(in srgb, var(--accent, #4fd2ff) 60%, transparent); }
+  100% { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28); }
+}
+
+/* ─── Главное сейчас ─── */
+.section-title.compact { margin-top: 26px; }
+.facts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+.fact {
+  display: flex; flex-direction: column; gap: 4px; text-align: left; cursor: pointer;
+  padding: 16px 18px; border-radius: 20px; border: 1px solid color-mix(in srgb, var(--fc) 35%, transparent);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--fc) 16%, transparent), rgba(16, 26, 56, 0.6) 70%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); transition: transform 0.15s, border-color 0.2s;
+}
+.fact:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--fc) 70%, transparent); }
+.fact-q { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 15.5px; font-weight: 600; }
+.fact-icon { color: var(--fc); display: grid; place-items: center; }
+.fact-a { font: 800 30px/1.15 var(--rounded); color: var(--fc); text-shadow: 0 0 22px color-mix(in srgb, var(--fc) 40%, transparent); }
+.fact-d { color: var(--text-2); font-size: 15px; line-height: 1.4; }
 .card-head h2 { display: flex; align-items: center; gap: 9px; margin: 0; font: 700 19px var(--rounded); color: var(--text); }
 .card-icon { display: grid; place-items: center; color: var(--accent, #4fd2ff); }
 .card-aside { display: flex; align-items: center; gap: 8px; }
@@ -282,9 +322,9 @@ svg .marker-label { font: 800 12px var(--mono); }
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); animation: panel-in 0.35s ease;
 }
 @keyframes panel-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
-.scene-panel h3 { margin: 0 34px 6px 0; font: 800 24px var(--rounded); }
-.panel-lead { margin: 0 0 12px; color: var(--text-2); font-size: 16px; }
-.panel-rows div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--grid); font-size: 15.5px; }
+.scene-panel h3 { margin: 0 34px 6px 0; font: 800 22px var(--rounded); }
+.panel-lead { margin: 0 0 10px; color: var(--text-2); font-size: 15.5px; line-height: 1.45; }
+.panel-rows div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--grid); font-size: 15px; }
 .panel-rows span { color: var(--text-3); }
 .panel-rows b { font: 700 15.5px var(--mono); text-align: right; }
 .panel-note { color: var(--text-3); font-size: 14.5px; margin: 12px 0 0; }
@@ -294,7 +334,7 @@ svg .marker-label { font: 800 12px var(--mono); }
   border: 1px solid var(--card-stroke); background: rgba(255, 255, 255, 0.06); font-size: 22px; line-height: 1; cursor: pointer;
 }
 .panel-jump {
-  margin-top: 16px; width: 100%; padding: 12px; border-radius: 14px; border: 0; cursor: pointer;
+  margin-top: 12px; width: 100%; padding: 11px; border-radius: 14px; border: 0; cursor: pointer;
   background: linear-gradient(135deg, #2f8fff, #4fd2ff); color: #021029; font-weight: 750; font-size: 16px;
 }
 .scene-backdrop { display: none; }

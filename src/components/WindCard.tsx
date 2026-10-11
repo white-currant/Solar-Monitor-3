@@ -21,29 +21,38 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
     )
   }
 
+  const fast = cur.speed >= 500
+  const south = cur.bz <= -5
+  const verdict = fast && south
+    ? { text: 'Быстрый ветер и южное поле — условия для магнитной бури.', color: '#ff4d4d' }
+    : fast
+      ? { text: 'Ветер быстрый, но поле не южное — магнитосфера держит удар.', color: '#ffb21a' }
+      : south
+        ? { text: 'Поле южное, но ветер спокойный — возможны слабые возмущения.', color: '#ffb21a' }
+        : { text: 'Ветер спокойный — угрозы для магнитного поля нет.', color: '#2ee88a' }
   const lead = leadTimeFromL1(cur.speed)
   const travel = travelTimeFromSun(cur.speed)
   const start = now - 24 * H
 
   const chart = {
     speed: {
-      series: [{ points: wind.map((p) => ({ t: p.t, v: p.speed })), color: '#ffb21a', area: true }],
+      series: [{ points: wind.map((p) => ({ t: p.t, v: p.speed })), color: '#ff7d5c', area: true }],
       yMin: 250,
       yMax: Math.max(700, Math.ceil(Math.max(...wind.map((p) => p.speed)) / 100) * 100 + 50),
       ticks: [300, 400, 500, 600, 700, 800, 900].map((v) => ({ v, label: String(v) })),
-      bands: [{ from: 500, to: 2000, color: 'rgba(255,199,82,0.06)', label: 'быстрый поток' }],
+      bands: [{ from: 500, to: 2000, color: 'rgba(255,125,92,0.07)', label: 'быстрый поток' }],
       zero: undefined as number | undefined,
       format: (v: number) => `${Math.round(v)} км/с`,
     },
     bz: {
       series: [
-        { points: wind.map((p) => ({ t: p.t, v: p.bz })), color: '#ff6a3d', width: 2.2 },
+        { points: wind.map((p) => ({ t: p.t, v: p.bz })), color: '#ff4d9a', width: 2.2 },
         { points: wind.map((p) => ({ t: p.t, v: p.bt })), color: 'rgba(232,238,252,0.45)', width: 1.2, dashed: true },
       ],
       yMin: -Math.max(15, Math.ceil(Math.max(...wind.map((p) => p.bt)) / 5) * 5),
       yMax: Math.max(15, Math.ceil(Math.max(...wind.map((p) => p.bt)) / 5) * 5),
       ticks: [-20, -10, 0, 10, 20].map((v) => ({ v, label: String(v) })),
-      bands: [{ from: -100, to: -5, color: 'rgba(255,107,97,0.08)', label: 'южное поле' }],
+      bands: [{ from: -100, to: -5, color: 'rgba(255,77,154,0.09)', label: 'южное поле' }],
       zero: 0,
       format: (v: number) => `Bz ${fmt1(v)} нТл`,
     },
@@ -59,7 +68,15 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
   }[mode]
 
   return (
-    <Card id="wind-card" title="Солнечный ветер" icon={Icons.wind} info="wind" aside={<span className="stamp">{age(cur.t)}</span>}>
+    <Card
+      id="wind-card"
+      title="Солнечный ветер"
+      subtitle="Поток частиц от Солнца — замер за 1,5 млн км до Земли. Быстрый ветер с южным полем Bz раскачивает магнитные бури."
+      verdict={verdict}
+      icon={Icons.wind}
+      info="wind"
+      aside={<span className="stamp">{age(cur.t)}</span>}
+    >
       <div className="stats">
         <Stat label="Скорость" value={Math.round(cur.speed)} unit="км/с" color={speedColor(cur.speed)} />
         <Stat label="Плотность" value={fmt1(cur.density)} unit="см⁻³" />

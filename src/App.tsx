@@ -13,6 +13,7 @@ import { AuroraCard } from './components/AuroraCard'
 import { AlertsCard } from './components/AlertsCard'
 import { CycleCard } from './components/CycleCard'
 import { SpaceScene, sceneInput } from './components/SpaceScene'
+import { KeyFacts } from './components/KeyFacts'
 import { loadPlace } from './components/AuroraCard'
 import { auroraProbability } from './lib/model'
 
@@ -36,9 +37,29 @@ export default function App() {
 
   const c = useMemo(() => conditions(snapshot, now), [snapshot, now])
   const scene = useMemo(() => sceneInput(snapshot, c, now), [snapshot, c, now])
-  const place = loadPlace()
+  const [placeVersion, setPlaceVersion] = useState(0)
+  useEffect(() => {
+    const bump = () => setPlaceVersion((v) => v + 1)
+    window.addEventListener('solar-place', bump)
+    return () => window.removeEventListener('solar-place', bump)
+  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const place = useMemo(() => loadPlace(), [placeVersion])
   const auroraHere = aurora ? { place: place.name, probability: auroraProbability(aurora, place.lat, place.lon) } : null
-  const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  // Переход к карточке: прокрутить и ненадолго подсветить, чтобы было понятно, куда смотреть.
+  const jump = (id: string) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    // Прокрутка расчётом, с поправкой на шапку: scrollIntoView ведёт себя по-разному в браузерах.
+    const top = el.getBoundingClientRect().top + window.scrollY - 76
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' })
+    // Атрибут, а не класс: className карточки ведёт React и перезаписал бы подсветку.
+    delete el.dataset.flash
+    void el.offsetWidth
+    el.dataset.flash = '1'
+    window.setTimeout(() => delete el.dataset.flash, 3200)
+  }
   const offline = failed.size >= 4 && !loading
 
   useEffect(() => {
@@ -74,11 +95,14 @@ export default function App() {
         <SpaceScene data={scene} c={c} aurora={auroraHere} onJump={jump} />
         <Hero c={c} capturedAt={snapshot.capturedAt} loading={loading} offline={offline} onRefresh={refresh} />
 
+        <KeyFacts c={c} scales={snapshot.scales} flares={snapshot.flares} aurora={aurora} place={place} now={now} onJump={jump} />
+
+        <h2 className="section-title">Подробно</h2>
         <div className="cards">
-          <ScalesCard scales={snapshot.scales} c={c} />
           <KpCard forecast={snapshot.kpForecast} estimated={snapshot.kpEstimated} now={now} />
           <WindCard wind={snapshot.wind} now={now} />
           <FlareCard xray={snapshot.xray} flares={snapshot.flares} now={now} />
+          <ScalesCard scales={snapshot.scales} c={c} />
           <ProtonCard protons={snapshot.protons} now={now} />
           <AlertsCard alerts={snapshot.alerts} now={now} />
         </div>
