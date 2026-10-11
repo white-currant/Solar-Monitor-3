@@ -46,6 +46,7 @@ export function CycleCard({ data }: { data: { observed: CyclePoint[]; predicted:
         )}
       </div>
       <TimeChart
+        now={Date.now()}
         series={[
           { points: observed.map((p) => ({ t: p.t, v: p.ssn })), color: 'rgba(255,187,31,0.5)', width: 1.1 },
           { points: smoothed, color: '#ffbb1f', width: 2.8 },

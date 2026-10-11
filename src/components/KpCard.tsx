@@ -5,7 +5,7 @@ import { Card, Empty, Icons, More } from './Card'
 
 const H = 3_600_000
 
-export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint[]; estimated: Point[]; now: number }) {
+export function KpCard({ forecast, estimated, current, now }: { forecast: KpForecastPoint[]; estimated: Point[]; current: number | null; now: number }) {
   // Сутки наблюдений и трое суток прогноза одним рядом трёхчасовых столбцов.
   const bars: Bar[] = forecast
     .filter((p) => p.t >= now - 24 * H && p.t <= now + 72 * H)
@@ -18,7 +18,7 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
     }))
 
   const peak = forecast.filter((p) => p.origin === 'predicted' && p.t > now).reduce<KpForecastPoint | null>((m, p) => (!m || p.kp > m.kp ? p : m), null)
-  const cur = estimated.length ? estimated[estimated.length - 1].v : forecast.filter((p) => p.origin !== 'predicted').pop()?.kp ?? null
+  const cur = current ?? forecast.filter((p) => p.origin !== 'predicted').pop()?.kp ?? null
   const kpText = (v: number) => v.toFixed(1).replace('.', ',')
   const verdict =
     cur === null
@@ -46,6 +46,7 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
       {bars.length ? (
         <>
           <BarChart
+            now={now}
             bars={bars}
             max={9}
             ticks={[0, 3, 5, 7, 9]}
@@ -83,6 +84,7 @@ export function KpCard({ forecast, estimated, now }: { forecast: KpForecastPoint
         <More label="Поминутно за 6 часов">
         <div className="subchart">
           <TimeChart
+            now={now}
             series={[{ points: estimated, color: '#4fd2ff', area: true }]}
             start={now - 6 * H}
             end={now}

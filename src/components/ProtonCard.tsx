@@ -30,6 +30,7 @@ export function ProtonCard({ protons, now }: { protons: Point[]; now: number }) 
             </div>
           </div>
           <TimeChart
+            now={now}
             series={[{ points: protons, color: '#b98cff', area: true, width: 1.8 }]}
             start={now - 24 * H}
             end={now}

@@ -94,6 +94,7 @@ export function WindCard({ wind, now }: { wind: WindPoint[]; now: number }) {
         ]}
       />
       <TimeChart
+            now={now}
         series={chart.series}
         start={start}
         end={now}

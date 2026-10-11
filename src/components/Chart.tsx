@@ -58,6 +58,8 @@ interface TimeChartProps {
   longTime?: boolean
   /** Пропуск в данных длиннее этого (мс) разрывает линию. */
   gap?: number
+  /** Момент «сейчас» — вертикальная линия с подписью и точка текущего значения. */
+  now?: number
 }
 
 const PAD = { top: 12, right: 8, bottom: 26, left: 48 }
@@ -179,7 +181,7 @@ export function TimeChart(props: TimeChartProps) {
             <g key={i}>
               <rect x={PAD.left} width={w} y={sy(b.to)} height={Math.max(0, sy(b.from) - sy(b.to))} fill={b.color} />
               {b.label && (
-                <text x={PAD.left + w - 4} y={sy(b.to) + 11} className="band-label" textAnchor="end" fill={b.color.replace(/[\d.]+\)$/, '0.9)')}>
+                <text x={PAD.left + 6} y={sy(b.to) + 13} className="band-label" textAnchor="start" fill={b.color.replace(/[\d.]+\)$/, '0.9)')}>
                   {b.label}
                 </text>
               )}
@@ -241,6 +243,27 @@ export function TimeChart(props: TimeChartProps) {
               ),
           )}
 
+          {props.now !== undefined && props.now >= start && props.now <= end + 60_000 && (() => {
+            const x = Math.min(sx(props.now), PAD.left + w)
+            const lastPt = main[main.length - 1]
+            const atEdge = x > PAD.left + w - 40
+            const dotColor = lastPt ? (series[0].colorAt ? series[0].colorAt(lastPt.v) : series[0].color) : '#fff'
+            return (
+              <g pointerEvents="none">
+                <line x1={x} x2={x} y1={PAD.top} y2={PAD.top + h} className="now-line" />
+                <text x={atEdge ? x - 5 : x + 5} y={PAD.top + 11} className="now-label" textAnchor={atEdge ? 'end' : 'start'}>
+                  сейчас
+                </text>
+                {lastPt && Math.abs(lastPt.t - props.now) < 3 * 3_600_000 && (
+                  <>
+                    <circle cx={sx(lastPt.t)} cy={sy(lastPt.v)} r="7" fill={dotColor} opacity="0.25" className="now-pulse" />
+                    <circle cx={sx(lastPt.t)} cy={sy(lastPt.v)} r="3.6" fill={dotColor} stroke="#050a1c" strokeWidth="1.5" />
+                  </>
+                )}
+              </g>
+            )
+          })()}
+
           {hovered && (
             <g pointerEvents="none">
               <line x1={sx(hovered.t)} x2={sx(hovered.t)} y1={PAD.top} y2={PAD.top + h} className="crosshair" />
@@ -299,7 +322,12 @@ export function BarChart({
   threshold,
   format,
   footer,
+  now,
+  slot = 3 * 3_600_000,
 }: {
+  now?: number
+  /** Длительность одного столбца, мс. */
+  slot?: number
   bars: Bar[]
   max: number
   height?: number
@@ -337,6 +365,17 @@ export function BarChart({
               </text>
             </g>
           )}
+          {now !== undefined && bars.length > 0 && now >= bars[0].t && now <= bars[bars.length - 1].t + slot && (() => {
+            const x = left + ((now - bars[0].t) / slot) * step
+            return (
+              <g pointerEvents="none">
+                <line x1={x} x2={x} y1={6} y2={10 + h} className="now-line" />
+                <text x={x + 5} y={16} className="now-label">
+                  сейчас
+                </text>
+              </g>
+            )
+          })()}
           {bars.map((b, i) => {
             const bw = Math.max(2, step - Math.min(4, step * 0.22))
             const x = left + i * step + (step - bw) / 2

@@ -8,9 +8,10 @@ import { Card, Empty, Icons, More, Segmented } from './Card'
 const H = 3_600_000
 
 const CLASS_BANDS = [
-  { from: 1e-6, to: 1e-5, color: 'rgba(115,217,153,0.06)', label: 'C' },
-  { from: 1e-5, to: 1e-4, color: 'rgba(255,191,77,0.08)', label: 'M' },
-  { from: 1e-4, to: 1e-2, color: 'rgba(255,102,102,0.10)', label: 'X' },
+  // Буквы классов уже стоят на оси — на полосах их не дублируем.
+  { from: 1e-6, to: 1e-5, color: 'rgba(46,232,138,0.06)' },
+  { from: 1e-5, to: 1e-4, color: 'rgba(255,178,26,0.08)' },
+  { from: 1e-4, to: 1e-2, color: 'rgba(255,77,77,0.10)' },
 ]
 
 export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareEvent[]; now: number }) {
@@ -78,6 +79,7 @@ export function FlareCard({ xray, flares, now }: { xray: Point[]; flares: FlareE
             </div>
           </div>
           <TimeChart
+            now={now}
             series={[{ points: series, color: FLARE_COLOR.B, area: true, width: 2, colorAt: (v) => FLARE_COLOR[flareLetter(v)] }]}
             start={start}
             end={now}

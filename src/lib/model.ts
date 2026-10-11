@@ -121,9 +121,21 @@ export const emptySnapshot = (): Snapshot => ({
 
 export const last = <T,>(items: T[]): T | undefined => items[items.length - 1]
 
-/** Текущий Kp: минутная оценка точнее трёхчасовой ступеньки. */
+/**
+ * Текущий Kp: минутная оценка точнее трёхчасовой ступеньки. Но в начале каждого
+ * трёхчасового интервала NOAA начинает оценку заново с нуля, и первые ~45 минут она
+ * занижена. В это время показываем последнюю полную оценку прошлого интервала.
+ */
 export function currentKp(s: Snapshot): number | null {
-  return last(s.kpEstimated)?.v ?? last(s.kp)?.v ?? null
+  const est = last(s.kpEstimated)
+  if (!est) return last(s.kp)?.v ?? null
+  const block = 3 * 3_600_000
+  const start = Math.floor(est.t / block) * block
+  if (est.t - start < 45 * 60_000) {
+    const prev = [...s.kpEstimated].reverse().find((p) => p.t < start)
+    if (prev && prev.v > est.v) return prev.v
+  }
+  return est.v
 }
 
 export function auroraProbability(grid: AuroraGrid, latitude: number, longitude: number): number {
